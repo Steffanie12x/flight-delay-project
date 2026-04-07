@@ -43,13 +43,13 @@ def show_navbar():
         text-decoration: none !important;
         color: #111111 !important;
         font-size: 1.05rem !important;
-        font-weight: 500 !important;
+        font-weight: 700 !important;
         letter-spacing: 0.01em !important;
     }
     div[data-testid="stPageLink"] a:hover { color: #3B82F6 !important; }
     div[data-testid="stPageLink"] p {
         font-size: 1.05rem !important;
-        font-weight: 500 !important;
+        font-weight: 700 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -59,8 +59,8 @@ def show_navbar():
     nav_logo, nav_space, nav1, nav2, nav3 = st.columns([3, 3, 1.5, 1.5, 1.5])
     with nav_logo:
         st.markdown(
-            "<div style='font-size:1.1rem; font-weight:700; padding-top:0.4rem;'>"
-            "Flight Delay <span style='color:#6B7280; font-weight:400;'>· ZRH</span></div>",
+            "<div style='font-size:2rem; font-weight:800; padding-top:0.4rem;'>"
+            "Flight Delay <span style='color:#6B7280; font-weight:400; font-size:1.5rem;'>· ZRH</span></div>",
             unsafe_allow_html=True
         )
     with nav1:
