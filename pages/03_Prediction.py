@@ -3,6 +3,18 @@ import pandas as pd             # Pandas für Datentabellen
 from datetime import date       # date-Modul für Datumseingabe
 from utils.weather import get_historical_weather, get_forecast_weather, classify_weather_condition
                                 # Unsere eigenen Wetterfunktionen importieren
+from utils.navbar import show_navbar
+
+# ── Seitenkonfiguration ───────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="Prediction – Flight Delay ZRH",
+    page_icon="✈",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+# ── Navbar anzeigen ───────────────────────────────────────────────────────────
+show_navbar()
 
 # Titel der Seite
 st.title("Prediction Tool")
