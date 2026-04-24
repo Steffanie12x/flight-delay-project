@@ -17,7 +17,13 @@ def show_navbar():
     #MainMenu, footer { visibility: hidden; }
 
     /* Anker-Link-Icon beim Hovern verstecken */
-    a.anchor-link { display: none !important; }
+    a.anchor-link,
+    h1 a, h2 a, h3 a, h4 a,
+    [data-testid="stMarkdownContainer"] a[href^="#"],
+    .stMarkdown a[href^="#"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
 
     /* Alle Texte schwarz */
     html, body, p, span, div, label, li, a,
