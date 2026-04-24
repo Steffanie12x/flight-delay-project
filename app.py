@@ -7,7 +7,7 @@ from utils.navbar import show_navbar
 # ── Seitenkonfiguration ───────────────────────────────────────────────────────
 # Setzt Titel, Icon, Layout und Sidebar-Status der App
 st.set_page_config(
-    page_title="Flight Delay – ZRH",
+    page_title="Flight Delay – USA",
     page_icon="✈",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -117,13 +117,13 @@ st.markdown(f"""
         color: #ffffff;
     ">
         <div class="hero-label" style="font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; margin-bottom:0.75rem;">
-            Zurich Airport · ZRH
+            ATL · ORD · JFK · LAX · DEN
         </div>
         <h1 style="font-size:3rem; font-weight:700; color:#ffffff; margin:0 0 0.75rem; line-height:1.1; letter-spacing:-0.02em;">
             Flight Delay
         </h1>
         <p style="color:#ffffff; font-size:1rem; margin:0 0 1.5rem; max-width:480px; line-height:1.6;">
-            Analyze delay patterns from Zurich — by airline, time and destination.
+            Analyze delay patterns from the 5 busiest US airports — by airline, time and destination.
         </p>
     </div>
 </div>
@@ -144,7 +144,7 @@ st.markdown("""
 ">
     <em>„Passengers often do not know how risky a planned flight is in terms of delays.
     Our website helps them understand historical delay patterns and estimates the delay
-    probability for a specific flight from Zurich Airport."</em>
+    probability for a specific flight from one of the 5 busiest US airports."</em>
 </div>
 """, unsafe_allow_html=True)
 
@@ -243,9 +243,9 @@ with col3:
 def show_about():
     # Informationen über das Projektteam und das Projekt
     st.markdown("""
-    **Flight Delay ZRH** is a student project developed at the University of St. Gallen.
+    **Flight Delay USA** is a student project developed at the University of St. Gallen.
 
-    Our goal is to make flight delay data from Zurich Airport accessible and understandable —
+    Our goal is to make flight delay data from the 5 busiest US airports (ATL, ORD, JFK, LAX, DEN) accessible and understandable —
     helping travelers make smarter booking decisions.
 
     ---
@@ -256,13 +256,13 @@ def show_about():
 
     ---
     **Data Source**
-    Historical flight data from Zurich Airport (ZRH), combined with weather data from Open-Meteo.
+    Historical flight data from ATL, ORD, JFK, LAX and DEN, combined with weather data from Open-Meteo.
     """)
 
 @st.dialog("Stay Informed")
 def show_newsletter():
     # Formular zur Newsletter-Anmeldung für Verspätungsbenachrichtigungen
-    st.markdown("Get notified about major delays at Zurich Airport directly in your inbox.")
+    st.markdown("Get notified about major delays at US airports directly in your inbox.")
     st.markdown("<br>", unsafe_allow_html=True)
     email = st.text_input("Your email address", placeholder="you@example.com")
     st.selectbox("Airline you fly most often (optional)", [
@@ -296,6 +296,6 @@ st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("""
 <div style="border-top:1px solid #e0e0e0; padding-top:1rem; text-align:center;
     color:#aaaaaa; font-size:0.72rem;">
-    CS Project · University of St. Gallen · Zurich Airport Flight Data · 2026
+    CS Project · University of St. Gallen · US Airport Flight Data · 2026
 </div>
 """, unsafe_allow_html=True)

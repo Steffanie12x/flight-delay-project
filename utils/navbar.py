@@ -60,7 +60,7 @@ def show_navbar():
     with nav_logo:
         st.markdown(
             "<div style='font-size:2rem; font-weight:800; padding-top:0.4rem;'>"
-            "Flight Delay <span style='color:#6B7280; font-weight:400; font-size:1.5rem;'>· ZRH</span></div>",
+            "Flight Delay <span style='color:#6B7280; font-weight:400; font-size:1.5rem;'>· USA</span></div>",
             unsafe_allow_html=True
         )
     with nav1:

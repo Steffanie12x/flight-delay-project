@@ -4,7 +4,7 @@ from utils.navbar import show_navbar
 
 # ── Seitenkonfiguration ───────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Analysis – Flight Delay ZRH",
+    page_title="Analysis – Flight Delay USA",
     page_icon="✈",
     layout="wide",
     initial_sidebar_state="collapsed",
