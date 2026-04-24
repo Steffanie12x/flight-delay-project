@@ -16,6 +16,9 @@ def show_navbar():
     [data-testid="collapsedControl"] { display: none !important; }
     #MainMenu, footer { visibility: hidden; }
 
+    /* Anker-Link-Icon beim Hovern verstecken */
+    a.anchor-link { display: none !important; }
+
     /* Alle Texte schwarz */
     html, body, p, span, div, label, li, a,
     h1, h2, h3, h4, h5, h6,
