@@ -1,195 +1,219 @@
-import streamlit as st          # Streamlit für die Web-Oberfläche
-import pandas as pd             # Pandas für Datentabellen
-from datetime import date       # date-Modul für Datumseingabe
-from utils.weather import get_historical_weather, get_forecast_weather, classify_weather_condition
-                                # Unsere eigenen Wetterfunktionen importieren
+"""
+pages/03_Prediction.py
+======================
+ML-Vorhersage-Seite der Flight Delay App.
+Nutzer gibt Flugdetails ein und bekommt Delay-Wahrscheinlichkeit zurück.
+"""
+
+import streamlit as st
+from datetime import date
 from utils.navbar import show_navbar
+from utils.weather import get_weather, classify_weather_condition, get_airport_list
+from model.predict import predict_delay, get_airline_options, get_destination_options
 
 # ── Seitenkonfiguration ───────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Prediction – Flight Delay ZRH",
+    page_title="Prediction – Flight Delay",
     page_icon="✈",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# ── Navbar anzeigen ───────────────────────────────────────────────────────────
+# ── Navbar ────────────────────────────────────────────────────────────────────
 show_navbar()
 
-# Titel der Seite
+# ── Titel ─────────────────────────────────────────────────────────────────────
 st.title("Prediction Tool")
-
-# Trennlinie
+st.markdown("Enter your flight details to get a delay probability estimate.")
 st.markdown("---")
 
-# ── BENUTZER-EINGABEN ──────────────────────────────────────────
+# ── EINGABE-FORMULAR ──────────────────────────────────────────────────────────
 st.subheader("Your Flight Details")
 
-# Datumseingabe: Benutzer wählt ein Datum
-flight_date = st.date_input(
-    "Flight Date",
-    value=date.today()          # Standardmässig heutiges Datum vorausgewählt
-)
+col1, col2 = st.columns(2, gap="large")
 
-# Stundeneingabe: Benutzer wählt die Abflugstunde (0-23 Uhr)
-flight_hour = st.slider(
+with col1:
+    # Abflughafen Dropdown
+    airport_options = get_airport_list()   # {"Atlanta (ATL)": "ATL", ...}
+    origin_name = st.selectbox(
+        "Departure Airport",
+        options=list(airport_options.keys()),
+        index=2,   # JFK als Standard
+    )
+    origin_code = airport_options[origin_name]
+
+    # Airline Dropdown
+    airline_options = get_airline_options()  # {"American Airlines": "AA", ...}
+    airline_name = st.selectbox(
+        "Airline",
+        options=list(airline_options.keys()),
+    )
+    airline_code = airline_options[airline_name]
+
+with col2:
+    # Zielflughafen (ohne Abflughafen)
+    dest_options = get_destination_options(origin_code)
+    dest_name = st.selectbox(
+        "Destination Airport",
+        options=list(dest_options.keys()),
+    )
+    dest_code = dest_options[dest_name]
+
+    # Datum
+    flight_date = st.date_input(
+        "Flight Date",
+        value=date.today(),
+        min_value=date(2020, 1, 1),
+    )
+
+# Abflugzeit als Slider über volle Breite
+dep_hour = st.slider(
     "Departure Hour",
-    min_value=0,                # Frühester Abflug: 0 Uhr
-    max_value=23,               # Spätester Abflug: 23 Uhr
-    value=12                    # Standardmässig 12 Uhr vorausgewählt
+    min_value=0,
+    max_value=23,
+    value=12,
+    format="%d:00",
 )
 
-# Trennlinie
 st.markdown("---")
 
-# ── WETTERDATEN LADEN ──────────────────────────────────────────
+# ── VORHERSAGE BUTTON ─────────────────────────────────────────────────────────
+predict_btn = st.button("✈ Predict Delay", type="primary", use_container_width=True)
 
-# Datum in String umwandeln (API erwartet Format 'YYYY-MM-DD')
-date_str = flight_date.strftime("%Y-%m-%d")
+if predict_btn:
 
-# Prüfen ob das gewählte Datum in der Vergangenheit oder Zukunft liegt
-today = date.today()
+    # ── Wetterdaten laden ─────────────────────────────────────────────────────
+    with st.spinner("Loading weather data..."):
+        try:
+            date_str   = flight_date.strftime("%Y-%m-%d")
+            weather_df = get_weather(origin_code, date_str)
+        except Exception as e:
+            st.error(f"Could not load weather data: {e}")
+            st.stop()
 
-# Wetterdaten laden mit Fehlerbehandlung
-try:
-    if flight_date <= today:
-        # Datum liegt in der Vergangenheit → historische Daten verwenden
-        weather_df = get_historical_weather(date_str)
-        st.caption("Weather source: Historical data (Open-Meteo Archive)")
-    else:
-        # Datum liegt in der Zukunft → Wettervorhersage verwenden
-        weather_df = get_forecast_weather(date_str)
-        st.caption("Weather source: Forecast data (Open-Meteo Forecast)")
+    # ── ML Vorhersage ─────────────────────────────────────────────────────────
+    with st.spinner("Running prediction model..."):
+        result = predict_delay(
+            airline     = airline_code,
+            origin      = origin_code,
+            destination = dest_code,
+            flight_date = flight_date,
+            dep_hour    = dep_hour,
+            weather_df  = weather_df,
+        )
 
-    # ── WETTERKLASSIFIKATION ───────────────────────────────────────
-    # Wetterzeile für die gewählte Abflugstunde aus der Tabelle holen
-    weather_at_hour = weather_df[weather_df["hour"] == flight_hour].iloc[0]
+    # Fehler abfangen
+    if "error" in result:
+        st.error(result["error"])
+        st.stop()
 
-    # Wetterkategorie für diese Stunde berechnen (z.B. "Heavy Rain", "Good")
-    condition = classify_weather_condition(weather_at_hour)
+    st.markdown("---")
 
-    # Wettericon je nach Kategorie bestimmen (für visuelle Darstellung)
+    # ── ERGEBNIS ANZEIGEN ─────────────────────────────────────────────────────
+    st.subheader("Prediction Result")
+
+    # Hauptergebnis: grosse farbige Box
+    risk_color = result["risk_color"]
+    prob_pct   = result["delay_probability_pct"]
+    category   = result["delay_category"]
+    risk_level = result["risk_level"]
+
+    st.markdown(f"""
+    <div style="
+        background: {risk_color}18;
+        border: 2px solid {risk_color};
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    ">
+        <div style="font-size: 0.75rem; color: {risk_color}; letter-spacing: 0.1em;
+                    text-transform: uppercase; margin-bottom: 0.5rem;">
+            Delay Risk — {risk_level}
+        </div>
+        <div style="font-size: 3.5rem; font-weight: 700; color: {risk_color}; line-height: 1;">
+            {prob_pct}
+        </div>
+        <div style="font-size: 1rem; color: #666666; margin-top: 0.5rem;">
+            probability of delay · expected: <strong>{category}</strong>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Drei Metriken nebeneinander
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Flight", f"{airline_code} · {origin_code} → {dest_code}")
+    m2.metric("Departure", f"{flight_date.strftime('%b %d, %Y')} · {dep_hour:02d}:00")
+    m3.metric("Distance", f"{result['distance_km']:,} km")
+
+    st.markdown("---")
+
+    # ── WETTER ANZEIGEN ───────────────────────────────────────────────────────
+    st.subheader(f"Weather at {origin_name} – {flight_date.strftime('%B %d, %Y')}")
+
+    # Wetter zur Abflugstunde
+    weather_at_hour = weather_df[weather_df["hour"] == dep_hour].iloc[0]
+    condition       = classify_weather_condition(weather_at_hour)
+
     condition_icons = {
         "Heavy Snow":    "❄️ Heavy Snow",
         "Light Snow":    "🌨️ Light Snow",
         "Heavy Rain":    "🌧️ Heavy Rain",
         "Light Rain":    "🌦️ Light Rain",
         "Strong Wind":   "💨 Strong Wind",
-        "Low Visibility":"🌫️ Low Visibility",
+        "Overcast":      "☁️ Overcast",
         "Good":          "☀️ Good",
     }
-    # Icon aus dem Dictionary holen, Fallback auf den rohen Text
     condition_label = condition_icons.get(condition, condition)
+    st.markdown(f"**Condition at {dep_hour:02d}:00:** {condition_label}")
 
-    # ── WETTER-ANZEIGE: GEWÄHLTE STUNDE ────────────────────────────
-    st.subheader(f"Weather at ZRH – {flight_date} {flight_hour:02d}:00")
+    # Vier Wetter-Metriken
+    w1, w2, w3, w4 = st.columns(4)
+    w1.metric("🌡️ Temperature", f"{weather_at_hour['temperature']} °C")
+    w2.metric("🌧️ Precipitation", f"{weather_at_hour['precipitation']} mm")
+    w3.metric("❄️ Snowfall", f"{weather_at_hour['snowfall']} cm")
+    w4.metric("💨 Wind Speed", f"{weather_at_hour['windspeed']} km/h")
 
-    # Wetterkategorie als farbiger Badge anzeigen
-    st.markdown(f"**Condition:** {condition_label}")
-
-    # Vier Kennzahlen nebeneinander als Metric-Karten anzeigen
-    col1, col2, col3, col4 = st.columns(4)
-
-    # Temperatur in der ersten Spalte
-    col1.metric(
-        label="🌡️ Temperature",
-        value=f"{weather_at_hour['temperature']} °C"
-    )
-
-    # Niederschlag in der zweiten Spalte
-    col2.metric(
-        label="🌧️ Precipitation",
-        value=f"{weather_at_hour['precipitation']} mm"
-    )
-
-    # Schneefall in der dritten Spalte
-    col3.metric(
-        label="❄️ Snowfall",
-        value=f"{weather_at_hour['snowfall']} cm"
-    )
-
-    # Windgeschwindigkeit in der vierten Spalte
-    col4.metric(
-        label="💨 Wind Speed",
-        value=f"{weather_at_hour['windspeed']} km/h"
-    )
-
-    # Zweite Zeile: Bewölkung
-    col5, col6, col7, col8 = st.columns(4)
-
-    # Bewölkung in der ersten Spalte der zweiten Zeile
-    col5.metric(
-        label="☁️ Cloud Cover",
-        value=f"{weather_at_hour['cloudcover']} %"
-    )
-
-    # ── TAGESÜBERSICHT ──────────────────────────────────────────────
     st.markdown("---")
-    st.subheader("Full Day Overview")
 
-    # Kopie des DataFrames erstellen, damit wir das Original nicht verändern
+    # ── TAGESÜBERSICHT ────────────────────────────────────────────────────────
+    st.subheader("Full Day Weather Overview")
+
     display_df = weather_df.copy()
 
-    # Tageszeit-Icon zur Stunde hinzufügen (Nacht / Morgen / Tag / Abend)
+    # Tageszeit-Icon
     def hour_label(h):
-        if 0 <= h < 6:
-            return f"🌙 {h:02d}:00"   # Nacht: 0–5 Uhr
-        elif 6 <= h < 12:
-            return f"🌅 {h:02d}:00"   # Morgen: 6–11 Uhr
-        elif 12 <= h < 19:
-            return f"☀️ {h:02d}:00"   # Tag: 12–18 Uhr
-        else:
-            return f"🌆 {h:02d}:00"   # Abend: 19–23 Uhr
+        if h < 6:    return f"🌙 {h:02d}:00"
+        elif h < 12: return f"🌅 {h:02d}:00"
+        elif h < 19: return f"☀️ {h:02d}:00"
+        else:         return f"🌆 {h:02d}:00"
 
-    # Stundenspalte durch lesbare Labels ersetzen
-    display_df["hour"] = display_df["hour"].apply(hour_label)
-
-    # Wetterkategorie mit Icon für jede Zeile berechnen und als neue Spalte hinzufügen
-    display_df["condition"] = weather_df.apply(classify_weather_condition, axis=1).map({
-        "Heavy Snow":    "❄️ Heavy Snow",
-        "Light Snow":    "🌨️ Light Snow",
-        "Heavy Rain":    "🌧️ Heavy Rain",
-        "Light Rain":    "🌦️ Light Rain",
-        "Strong Wind":   "💨 Strong Wind",
-        "Low Visibility":"🌫️ Low Visibility",
-        "Good":          "☀️ Good",
-    })
-
-    # Spaltenreihenfolge festlegen: Stunde und Condition zuerst, dann Messwerte
+    display_df["hour"]      = display_df["hour"].apply(hour_label)
+    display_df["condition"] = weather_df.apply(classify_weather_condition, axis=1).map(condition_icons)
     display_df = display_df[["hour", "condition", "temperature", "precipitation", "snowfall", "windspeed", "cloudcover"]]
 
-    # Tabelle mit Streamlit column_config anzeigen:
-    # - Fortschrittsbalken für Bewölkung
-    # - Einheiten in den Spaltenköpfen
-    # - gewählte Abflugstunde ist durch den Balken direkt erkennbar
     st.dataframe(
         display_df,
         use_container_width=True,
         hide_index=True,
         column_config={
-            # Stundenspalte umbenennen
             "hour":          st.column_config.TextColumn("🕐 Hour"),
-            # Wetterkategorie-Spalte umbenennen
             "condition":     st.column_config.TextColumn("Condition"),
-            # Temperatur mit Einheit
-            "temperature":   st.column_config.NumberColumn("🌡️ Temp", format="%.1f °C"),
-            # Niederschlag mit Einheit
-            "precipitation": st.column_config.NumberColumn("🌧️ Rain", format="%.1f mm"),
-            # Schneefall mit Einheit
-            "snowfall":      st.column_config.NumberColumn("❄️ Snow", format="%.1f cm"),
-            # Wind mit Einheit
-            "windspeed":     st.column_config.NumberColumn("💨 Wind", format="%.1f km/h"),
-            # Bewölkung als Fortschrittsbalken von 0–100%
+            "temperature":   st.column_config.NumberColumn("🌡️ Temp",  format="%.1f °C"),
+            "precipitation": st.column_config.NumberColumn("🌧️ Rain",  format="%.1f mm"),
+            "snowfall":      st.column_config.NumberColumn("❄️ Snow",  format="%.1f cm"),
+            "windspeed":     st.column_config.NumberColumn("💨 Wind",  format="%.1f km/h"),
             "cloudcover":    st.column_config.ProgressColumn(
-                "☁️ Clouds",
-                format="%d%%",   # Anzeige als Prozentzahl
-                min_value=0,     # Minimum: 0% Bewölkung
-                max_value=100    # Maximum: 100% Bewölkung
+                "☁️ Clouds", format="%d%%", min_value=0, max_value=100
             ),
         }
     )
 
-except Exception as e:
-    # Falls die API nicht erreichbar ist oder Fehler zurückgibt
-    st.error(f"Fehler beim Laden der Wetterdaten: {e}")
-    st.stop()                   # Seite hier stoppen, nichts weiteres ausführen
+    # ── MODEL INFO ────────────────────────────────────────────────────────────
+    st.markdown("---")
+    w = result["weather_used"]
+    st.caption(
+        f"Model inputs: PRCP={w['PRCP']}mm · SNOW={w['SNOW']}mm · "
+        f"TMAX={w['TMAX']}°C · TMIN={w['TMIN']}°C · AWND={w['AWND']}m/s · "
+        f"Trained on 2015 US flight data (XGBoost, 69.1% accuracy)"
+    )
