@@ -2,49 +2,31 @@
 model/predict.py
 ================
 Vorhersage-Funktion für die Streamlit App.
-Arbeitet zusammen mit utils/weather.py.
+Verwendet stündliche Wetterdaten und neue Delay-Kategorien.
 
-Verwendung in 03_Prediction.py:
-    from utils.weather import get_weather
-    from model.predict import predict_delay
-
-    weather_df = get_weather("JFK", "2026-05-15")
-    result = predict_delay(
-        airline="AA",
-        origin="JFK",
-        destination="LAX",
-        flight_date="2026-05-15",
-        dep_hour=17,
-        weather_df=weather_df,
-    )
+ÄNDERUNGEN gegenüber Version 1:
+- Neue Kategorien: No Delay / 15-30 / 30-45 / 45-60 / 60-90 / 90+
+- Stündliche Wetterdaten (Temperatur, Wind etc. zur Abflugzeit)
+- 33% Benchmark-Logik für die Anzeige
 """
 
 import pandas as pd
 import joblib
 import os
-from datetime import datetime, date
+from datetime import datetime
 
 MODEL_DIR = "models"
 
-# ── Airline-Codes zu lesbaren Namen ──────────────────────────────────────────
 AIRLINE_NAMES = {
-    "AA": "American Airlines",
-    "AS": "Alaska Airlines",
-    "B6": "JetBlue Airways",
-    "DL": "Delta Air Lines",
-    "EV": "Atlantic Southeast Airlines",
-    "F9": "Frontier Airlines",
-    "HA": "Hawaiian Airlines",
-    "MQ": "American Eagle Airlines",
-    "NK": "Spirit Air Lines",
-    "OO": "Skywest Airlines",
-    "UA": "United Air Lines",
-    "US": "US Airways",
-    "VX": "Virgin America",
-    "WN": "Southwest Airlines",
+    "AA": "American Airlines",    "AS": "Alaska Airlines",
+    "B6": "JetBlue Airways",      "DL": "Delta Air Lines",
+    "EV": "Atlantic Southeast Airlines", "F9": "Frontier Airlines",
+    "HA": "Hawaiian Airlines",    "MQ": "American Eagle Airlines",
+    "NK": "Spirit Air Lines",     "OO": "Skywest Airlines",
+    "UA": "United Air Lines",     "US": "US Airways",
+    "VX": "Virgin America",       "WN": "Southwest Airlines",
 }
 
-# ── Distanzen zwischen den 5 Flughäfen in km ─────────────────────────────────
 DISTANCES = {
     ("ATL", "ORD"): 1527, ("ATL", "JFK"): 1524, ("ATL", "LAX"): 3118, ("ATL", "DEN"): 2180,
     ("ORD", "ATL"): 1527, ("ORD", "JFK"): 1189, ("ORD", "LAX"): 2808, ("ORD", "DEN"): 1474,
@@ -53,18 +35,19 @@ DISTANCES = {
     ("DEN", "ATL"): 2180, ("DEN", "ORD"): 1474, ("DEN", "JFK"): 2622, ("DEN", "LAX"): 1389,
 }
 
+# Benchmark: unter 33% → "Low Risk / No Delay erwartet"
+DELAY_BENCHMARK = 0.33
+
 
 # ─────────────────────────────────────────────
-# 1. MODELLE LADEN (einmal beim Start)
+# 1. MODELLE LADEN
 # ─────────────────────────────────────────────
 
 def load_models():
-    """Lädt alle trainierten Modelle aus dem models/ Ordner."""
     required = ["binary_model.pkl", "multiclass_model.pkl", "encoders.pkl", "feature_list.pkl"]
     for f in required:
         if not os.path.exists(f"{MODEL_DIR}/{f}"):
             return None, None, None, None
-
     binary_model = joblib.load(f"{MODEL_DIR}/binary_model.pkl")
     multi_model  = joblib.load(f"{MODEL_DIR}/multiclass_model.pkl")
     encoders     = joblib.load(f"{MODEL_DIR}/encoders.pkl")
@@ -72,32 +55,32 @@ def load_models():
     return binary_model, multi_model, encoders, feature_list
 
 
-# Modelle einmal laden wenn die Datei importiert wird
 _binary_model, _multi_model, _encoders, _feature_list = load_models()
 
 
 # ─────────────────────────────────────────────
-# 2. WETTER KONVERTIEREN
+# 2. WETTER VORBEREITEN
 # ─────────────────────────────────────────────
 
-def _convert_weather(weather_df: pd.DataFrame) -> dict:
+def _get_weather_at_hour(weather_df: pd.DataFrame, dep_hour: int) -> dict:
     """
-    Konvertiert stündliche Wetterdaten (aus utils/weather.py)
-    in Tageswerte die das ML-Modell erwartet.
+    Holt die Wetterdaten zur exakten Abflugstunde aus dem DataFrame.
+    Das ist neu — statt Tagesdurchschnitt verwenden wir die exakte Stunde!
+    """
+    row = weather_df[weather_df["hour"] == dep_hour]
 
-    Das Modell wurde mit NOAA Tageswerten trainiert:
-    - PRCP: Tagesniederschlag (mm)
-    - SNOW: Schnee (mm) — konvertiert von cm
-    - TMAX: Höchsttemperatur des Tages (°C)
-    - TMIN: Tiefsttemperatur des Tages (°C)
-    - AWND: Max. Windgeschwindigkeit (m/s) — konvertiert von km/h
-    """
+    if row.empty:
+        # Fallback: nächste verfügbare Stunde
+        row = weather_df.iloc[0]
+    else:
+        row = row.iloc[0]
+
     return {
-        "PRCP": round(float(weather_df["precipitation"].sum()), 1),
-        "SNOW": round(float(weather_df["snowfall"].sum() * 10), 1),  # cm → mm
-        "TMAX": round(float(weather_df["temperature"].max()), 1),
-        "TMIN": round(float(weather_df["temperature"].min()), 1),
-        "AWND": round(float(weather_df["windspeed"].max() / 3.6), 1),  # km/h → m/s
+        "TEMP":   float(row["temperature"] or 20.0),
+        "PRCP_H": float(row["precipitation"] or 0.0),
+        "SNOW_H": float(row["snowfall"] or 0.0),
+        "WIND":   float(row["windspeed"] / 3.6 if row["windspeed"] else 5.0),  # km/h → m/s
+        "CLOUD":  float(row["cloudcover"] or 50.0),
     }
 
 
@@ -125,27 +108,27 @@ def predict_delay(
         weather_df:   DataFrame aus utils/weather.py get_weather()
 
     Rückgabe:
-        Dictionary mit allen Vorhersage-Ergebnissen
+        Dictionary mit Vorhersage + Anzeigelogik (33% Benchmark)
     """
     if _binary_model is None:
         return {"error": "Modell nicht geladen. Sind die .pkl Dateien im models/ Ordner?"}
 
-    # ── Datum verarbeiten
+    # Datum verarbeiten
     if isinstance(flight_date, str):
         dt = datetime.strptime(flight_date, "%Y-%m-%d")
     else:
         dt = datetime.combine(flight_date, datetime.min.time())
 
     month       = dt.month
-    day_of_week = dt.isoweekday()   # 1=Montag, 7=Sonntag
+    day_of_week = dt.isoweekday()
 
-    # ── Stündliche Wetterdaten zu Tageswerten konvertieren
-    weather = _convert_weather(weather_df)
+    # Wetter zur exakten Abflugstunde holen
+    weather = _get_weather_at_hour(weather_df, dep_hour)
 
-    # ── Distanz bestimmen
+    # Distanz bestimmen
     distance_km = DISTANCES.get((origin, destination), 2500)
 
-    # ── Feature-Vektor aufbauen
+    # Feature-Vektor aufbauen
     input_data = {
         "MONTH":               month,
         "DAY_OF_WEEK":         day_of_week,
@@ -154,49 +137,78 @@ def predict_delay(
         "ORIGIN_AIRPORT":      origin,
         "DESTINATION_AIRPORT": destination,
         "DISTANCE_KM":         distance_km,
-        "PRCP":                weather["PRCP"],
-        "SNOW":                weather["SNOW"],
-        "TMAX":                weather["TMAX"],
-        "TMIN":                weather["TMIN"],
-        "AWND":                weather["AWND"],
+        "TEMP":                weather["TEMP"],
+        "PRCP_H":              weather["PRCP_H"],
+        "SNOW_H":              weather["SNOW_H"],
+        "WIND":                weather["WIND"],
+        "CLOUD":               weather["CLOUD"],
     }
 
     df = pd.DataFrame([input_data])
-
-    # ── Nur bekannte Features verwenden
     df = df[[f for f in _feature_list if f in df.columns]]
 
-    # ── Text-Spalten encodieren (gleich wie beim Training)
+    # Text-Spalten encodieren
     for col, encoder in _encoders.items():
         if col in df.columns:
-            known = set(encoder.classes_)
+            known  = set(encoder.classes_)
             df[col] = df[col].apply(lambda x: x if x in known else encoder.classes_[0])
             df[col] = encoder.transform(df[col].astype(str))
 
-    # ── Vorhersage 1: Wahrscheinlichkeit (Modell 1)
+    # Vorhersage 1: Wahrscheinlichkeit
     delay_prob = _binary_model.predict_proba(df)[0][1]
 
-    # ── Vorhersage 2: Delay-Kategorie (Modell 2)
-    pred_encoded   = _multi_model.predict(df)[0]
-    delay_category = _multi_model._label_encoder.inverse_transform([pred_encoded])[0]
+    # Vorhersage 2: Wahrscheinlichkeiten aller Kategorien
+    all_probs  = _multi_model.predict_proba(df)[0]
+    categories = _multi_model._label_encoder.classes_
 
-    # ── Risiko-Level bestimmen
-    if delay_prob < 0.30:
-        risk_level, risk_color = "Low",    "#10B981"
-    elif delay_prob < 0.55:
-        risk_level, risk_color = "Medium", "#F59E0B"
+    # Wahrscheinlichste Kategorie
+    best_idx      = all_probs.argmax()
+    best_category = categories[best_idx]
+    best_prob     = all_probs[best_idx]
+
+    # ── 33% BENCHMARK LOGIK ──────────────────────────────────────────────────
+    # Unter 33% → "Low Risk, No Delay erwartet"
+    # Über 33%  → wahrscheinlichste Kategorie anzeigen
+    if delay_prob < DELAY_BENCHMARK:
+        display_mode     = "low_risk"
+        display_category = "No Delay"
+        display_prob     = 1 - delay_prob   # Wahrscheinlichkeit KEIN Delay
+        risk_level       = "Low"
+        risk_color       = "#10B981"        # Grün
     else:
-        risk_level, risk_color = "High",   "#EF4444"
+        display_mode     = "show_category"
+        display_category = best_category
+        display_prob     = best_prob
+        if delay_prob < 0.55:
+            risk_level, risk_color = "Medium", "#F59E0B"   # Orange
+        else:
+            risk_level, risk_color = "High",   "#EF4444"   # Rot
 
     return {
+        # Rohwerte
         "delay_probability":     round(float(delay_prob), 3),
         "delay_probability_pct": f"{delay_prob:.0%}",
-        "delay_category":        delay_category,
-        "is_likely_delayed":     delay_prob >= 0.5,
+
+        # Anzeigelogik (33% Benchmark)
+        "display_mode":          display_mode,
+        "display_category":      display_category,
+        "display_prob":          round(float(display_prob), 3),
+        "display_prob_pct":      f"{display_prob:.0%}",
+
+        # Risiko
         "risk_level":            risk_level,
         "risk_color":            risk_color,
+
+        # Alle Kategorien mit Wahrscheinlichkeiten (für Details)
+        "all_categories": {
+            cat: round(float(prob), 3)
+            for cat, prob in zip(categories, all_probs)
+        },
+
+        # Kontext
         "weather_used":          weather,
         "distance_km":           distance_km,
+        "is_likely_delayed":     delay_prob >= 0.5,
     }
 
 
@@ -205,11 +217,7 @@ def predict_delay(
 # ─────────────────────────────────────────────
 
 def get_airline_options() -> dict:
-    """
-    Gibt Dictionary zurück: {voller Name: Code}
-    Für Streamlit Selectbox.
-    Beispiel: {"American Airlines": "AA", ...}
-    """
+    """Gibt {voller Name: Code} zurück für Streamlit Selectbox."""
     if _encoders and "AIRLINE" in _encoders:
         codes = sorted(_encoders["AIRLINE"].classes_.tolist())
     else:
@@ -218,10 +226,7 @@ def get_airline_options() -> dict:
 
 
 def get_destination_options(origin: str) -> dict:
-    """
-    Gibt mögliche Ziele für einen Abflughafen zurück.
-    Schliesst den Abflughafen selbst aus.
-    """
+    """Gibt mögliche Ziele zurück (ohne Abflughafen selbst)."""
     all_airports = {
         "Atlanta (ATL)":        "ATL",
         "Chicago O'Hare (ORD)": "ORD",
