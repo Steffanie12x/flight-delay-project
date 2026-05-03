@@ -47,6 +47,38 @@ def show_navbar():
         color: inherit !important;
     }
 
+    /* Selectbox: Eingabefeld Hintergrund hellblau */
+    [data-baseweb="select"] > div {
+        background-color: #EFF6FF !important;
+        border-color: #BFDBFE !important;
+    }
+
+    /* Selectbox: Dropdown-Liste Hintergrund hellblau */
+    [data-baseweb="popover"],
+    [data-baseweb="menu"],
+    [role="listbox"] {
+        background-color: #EFF6FF !important;
+    }
+
+    /* Selectbox: einzelne Einträge in der Liste */
+    [role="option"] {
+        background-color: #EFF6FF !important;
+    }
+
+    /* Selectbox: Hover auf einem Eintrag etwas dunkler blau */
+    [role="option"]:hover {
+        background-color: #DBEAFE !important;
+    }
+
+    /* Dataframe: Tabellen-Hintergrund hellblau */
+    [data-testid="stDataFrame"] iframe {
+        background-color: #EFF6FF !important;
+    }
+    .stDataFrame, [data-testid="stDataFrameResizable"] {
+        background-color: #EFF6FF !important;
+        border-radius: 8px;
+    }
+
     /* page_link Buttons als Navbar-Links stylen */
     div[data-testid="stPageLink"] a {
         text-decoration: none !important;
