@@ -213,21 +213,6 @@ def show_newsletter():
         else:
             st.error("Please enter a valid email address.")
 
-# Abstand vor den Buttons
-st.markdown("<br><br>", unsafe_allow_html=True)
-st.markdown("<div style='border-top:1px solid #e0e0e0; margin-bottom:2rem;'></div>", unsafe_allow_html=True)
-
-# Buttons zentriert in der Mitte der Seite
-_, btn_col1, btn_col2, _ = st.columns([2, 1, 1, 2])
-
-with btn_col1:
-    if st.button("About Us", use_container_width=True):
-        show_about()
-
-with btn_col2:
-    if st.button("Stay Informed", use_container_width=True):
-        show_newsletter()
-
 # ── DELAY CHARTS ─────────────────────────────────────────────────────────────
 # Drei interaktive Diagramme basierend auf 2015 BTS-Flugdaten
 st.markdown("<br>", unsafe_allow_html=True)
@@ -354,3 +339,15 @@ st.markdown("""
     CS Project · University of St. Gallen · US Airport Flight Data · 2026 · Source: BTS 2015
 </div>
 """, unsafe_allow_html=True)
+
+# ── About Us & Stay Informed Buttons ─────────────────────────────────────────
+st.markdown("<br>", unsafe_allow_html=True)
+_, btn_col1, btn_col2, _ = st.columns([2, 1, 1, 2])
+
+with btn_col1:
+    if st.button("About Us", use_container_width=True):
+        show_about()
+
+with btn_col2:
+    if st.button("Stay Informed", use_container_width=True):
+        show_newsletter()
