@@ -188,13 +188,14 @@ def show_about():
 
     ---
     **Team**
-    - Placeholder Name · Data & Backend
-    - Placeholder Name · Analysis & Visualization
-    - Placeholder Name · ML & Prediction
+    - Website Design · Sára Jankovičová
+    - Machine Learning · Benjamin Marchbacher & Silas Noah Marty
+    - Meteo API · Stefanie Seiler
+    - Data Research · Nils Wälti
 
     ---
     **Data Source**
-    Historical flight data from ATL, ORD, JFK, LAX and DEN, combined with weather data from Open-Meteo.
+    Historical flight data from 16 US airports (ATL, BOS, DEN, DFW, DTW, EWR, IAH, JFK, LAS, LAX, MCO, MSP, ORD, PHX, SEA, SFO) sourced from the Bureau of Transportation Statistics (BTS). Weather data via Open-Meteo API.
     """)
 
 @st.dialog("Stay Informed")
