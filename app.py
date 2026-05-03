@@ -333,13 +333,6 @@ st.plotly_chart(fig_airline, use_container_width=True)
 # ── Footer ────────────────────────────────────────────────────────────────────
 # Zeigt Projektinfo zentriert am Seitenende
 st.markdown("<br>", unsafe_allow_html=True)
-st.markdown("""
-<div style="border-top:1px solid #e0e0e0; padding-top:1rem; text-align:center;
-    color:#aaaaaa; font-size:0.72rem;">
-    CS Project · University of St. Gallen · US Airport Flight Data · 2026 · Source: BTS 2015
-</div>
-""", unsafe_allow_html=True)
-
 # ── About Us & Stay Informed Buttons ─────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
 _, btn_col1, btn_col2, _ = st.columns([2, 1, 1, 2])
@@ -351,3 +344,10 @@ with btn_col1:
 with btn_col2:
     if st.button("Stay Informed", use_container_width=True):
         show_newsletter()
+
+st.markdown("""
+<div style="border-top:1px solid #e0e0e0; padding-top:1rem; text-align:center;
+    color:#aaaaaa; font-size:0.72rem;">
+    CS Project · University of St. Gallen · US Airport Flight Data · 2026 · Source: BTS 2015
+</div>
+""", unsafe_allow_html=True)
