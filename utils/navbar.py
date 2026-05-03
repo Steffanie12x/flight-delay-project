@@ -102,7 +102,7 @@ def show_navbar():
     with nav_logo:
         _logo_b64 = base64.b64encode(pathlib.Path("logo.png").read_bytes()).decode()
         st.markdown(
-            f"<div style='display:flex; align-items:center; gap:0.2rem; padding-top:0.4rem;'>"
+            f"<div style='display:flex; align-items:center; gap:0; padding-top:0.4rem;'>"
             f"<img src='data:image/png;base64,{_logo_b64}' style='height:3rem; width:auto;'/>"
             f"<span style='font-size:2rem; font-weight:800;'>Flight Delay</span>"
             f"<span style='color:#6B7280; font-weight:400; font-size:1.5rem;'>· USA</span></div>",
