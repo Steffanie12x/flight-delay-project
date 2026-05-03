@@ -26,23 +26,49 @@ st.set_page_config(
 
 show_navbar()
 
-# ── Weisser Text in Eingabefeldern ───────────────────────────────────────────
+# ── Design & Font ─────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* Weisser Text in Dropdown-Feldern */
-div[data-baseweb="select"] span,
-div[data-baseweb="select"] input,
-div[data-baseweb="select"] div[class*="singleValue"] {
-    color: #ffffff !important;
+/* Inter Font von Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Gesamte App auf Inter umstellen */
+html, body, [class*="css"], .stMarkdown, .stText, h1, h2, h3, p, div {
+    font-family: 'Inter', sans-serif !important;
 }
-/* Weisser Text im Datums-Feld */
-div[data-baseweb="input"] input {
-    color: #ffffff !important;
+
+/* Titel grösser und schärfer */
+h1 { font-weight: 700 !important; letter-spacing: -0.02em !important; }
+h2 { font-weight: 600 !important; letter-spacing: -0.01em !important; }
+h3 { font-weight: 600 !important; }
+
+/* Labels über Inputs etwas heller und grösser */
+.stSelectbox label, .stDateInput label, .stSlider label {
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+    opacity: 0.7 !important;
 }
-/* Weisser Pfeil im Dropdown */
-div[data-baseweb="select"] svg {
-    fill: #ffffff !important;
+
+/* Trennlinien subtiler */
+hr { opacity: 0.15 !important; }
+
+/* Metriken schöner */
+[data-testid="metric-container"] {
+    background: rgba(255,255,255,0.04) !important;
+    border-radius: 10px !important;
+    padding: 0.75rem 1rem !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
 }
+
+/* Weisser Text in allen Dropdown-Feldern */
+div[data-baseweb="select"] * { color: #ffffff !important; }
+li[role="option"] *, li[role="option"] { color: #ffffff !important; }
+div[data-baseweb="input"] * { color: #ffffff !important; }
+input { color: #ffffff !important; }
+div[data-baseweb="calendar"] *, div[data-baseweb="datepicker"] * { color: #ffffff !important; }
+div[data-baseweb="select"] svg path { fill: #ffffff !important; stroke: #ffffff !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -118,10 +144,6 @@ if predict_btn:
     risk_level = result["risk_level"]
 
     # ── HAUPTERGEBNIS BOX ─────────────────────────────────────────────────────
-    # 33% Benchmark Logik:
-    # Unter 33% → "Low Risk, wahrscheinlich kein Delay"
-    # Über 33%  → wahrscheinlichste Kategorie anzeigen
-
     if result["display_mode"] == "low_risk":
         # Unter 33% — kein Delay erwartet
         st.markdown(f"""
@@ -132,21 +154,21 @@ if predict_btn:
             text-align: center;
             margin-bottom: 1.5rem;
         ">
-            <div style="font-size:0.75rem; color:rgba(255,255,255,0.8);
+            <div style="font-size:0.75rem; color:rgba(255,255,255,0.85);
                         letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.5rem;">
                 Delay Risk — {risk_level}
             </div>
-            <div style="font-size:3rem; font-weight:700; color:#ffffff; line-height:1;">
-                ✅ No Delay Expected
+            <div style="font-size:3rem; font-weight:700; color:#ffffff; line-height:1.1;">
+                No Delay
             </div>
-            <div style="font-size:1rem; color:rgba(255,255,255,0.9); margin-top:0.5rem;">
-                Only <strong style="color:#ffffff">{result["delay_probability_pct"]}</strong> probability of delay
+            <div style="font-size:1rem; color:rgba(255,255,255,0.9); margin-top:0.75rem;">
+                Only <strong style="color:#ffffff">{result["delay_probability_pct"]}</strong> probability of any delay
             </div>
         </div>
         """, unsafe_allow_html=True)
 
     else:
-        # Über 33% — wahrscheinlichste Kategorie anzeigen
+        # Über 33% — wahrscheinlichste Delay-Kategorie anzeigen
         st.markdown(f"""
         <div style="
             background: {risk_color};
@@ -155,63 +177,24 @@ if predict_btn:
             text-align: center;
             margin-bottom: 1.5rem;
         ">
-            <div style="font-size:0.75rem; color:rgba(255,255,255,0.8);
+            <div style="font-size:0.75rem; color:rgba(255,255,255,0.85);
                         letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.5rem;">
                 Delay Risk — {risk_level}
             </div>
-            <div style="font-size:3rem; font-weight:700; color:#ffffff; line-height:1;">
+            <div style="font-size:3rem; font-weight:700; color:#ffffff; line-height:1.1;">
                 {result["display_category"]}
             </div>
-            <div style="font-size:1rem; color:rgba(255,255,255,0.9); margin-top:0.5rem;">
-                Most likely delay · <strong style="color:#ffffff">{result["delay_probability_pct"]}</strong> chance of any delay
+            <div style="font-size:1rem; color:rgba(255,255,255,0.9); margin-top:0.75rem;">
+                {result["delay_probability_pct"]} probability of any delay
             </div>
         </div>
         """, unsafe_allow_html=True)
 
     # ── METRIKEN ──────────────────────────────────────────────────────────────
     m1, m2, m3 = st.columns(3)
-    m1.metric("Flight",     f"{airline_code} · {origin_code} → {dest_code}")
-    m2.metric("Departure",  f"{flight_date.strftime('%b %d, %Y')} · {dep_hour:02d}:00")
-    m3.metric("Distance",   f"{result['distance_km']:,} km")
-
-    # ── ALLE KATEGORIEN ANZEIGEN ──────────────────────────────────────────────
-    st.markdown("---")
-    st.subheader("Delay Probability by Category")
-    st.caption("Breakdown of probabilities across all delay categories")
-
-    # Kategorien in gewünschter Reihenfolge
-    category_order = ["No Delay", "15-30 min", "30-45 min", "45-60 min", "60-90 min", "90+ min"]
-    all_cats = result["all_categories"]
-
-    for cat in category_order:
-        if cat in all_cats:
-            prob = all_cats[cat]
-            # Farbe je nach Kategorie
-            if cat == "No Delay":
-                bar_color = "#10B981"
-            elif cat in ["15-30 min", "30-45 min"]:
-                bar_color = "#F59E0B"
-            else:
-                bar_color = "#EF4444"
-
-            # Highlight die wahrscheinlichste Kategorie
-            is_best = (cat == result["display_category"] and result["display_mode"] == "show_category")
-            weight  = "700" if is_best else "400"
-            marker  = " ◀ most likely" if is_best else ""
-
-            st.markdown(f"""
-            <div style="margin-bottom:0.5rem;">
-                <div style="display:flex; justify-content:space-between;
-                            font-size:0.85rem; margin-bottom:0.2rem;">
-                    <span style="font-weight:{weight}; color:#111111;">{cat}{marker}</span>
-                    <span style="font-weight:{weight}; color:#111111;">{prob:.0%}</span>
-                </div>
-                <div style="background:#f0f0f0; border-radius:4px; height:8px;">
-                    <div style="background:{bar_color}; width:{prob*100:.1f}%;
-                                height:8px; border-radius:4px;"></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+    m1.metric("Flight",    f"{airline_code} · {origin_code} → {dest_code}")
+    m2.metric("Departure", f"{flight_date.strftime('%b %d, %Y')} · {dep_hour:02d}:00")
+    m3.metric("Distance",  f"{result['distance_km']:,} km")
 
     # ── WETTER ANZEIGEN ───────────────────────────────────────────────────────
     st.markdown("---")
@@ -238,44 +221,84 @@ if predict_btn:
 
     st.markdown("---")
 
-    # ── TAGESÜBERSICHT ────────────────────────────────────────────────────────
-    st.subheader("Full Day Weather Overview")
+    # ── TAGESÜBERSICHT — nur bei echten stündlichen Daten anzeigen ────────────
+    # Wenn alle Temperaturwerte gleich sind = Tagesdurchschnitt → nicht anzeigen
+    is_daily_avg = weather_df["temperature"].nunique() == 1
 
-    display_df = weather_df.copy()
+    if not is_daily_avg:
+        st.subheader("Full Day Weather Overview")
 
-    def hour_label(h):
-        if h < 6:    return f"🌙 {h:02d}:00"
-        elif h < 12: return f"🌅 {h:02d}:00"
-        elif h < 19: return f"☀️ {h:02d}:00"
-        else:        return f"🌆 {h:02d}:00"
+        display_df = weather_df.copy()
 
-    display_df["hour"]      = display_df["hour"].apply(hour_label)
-    display_df["condition"] = weather_df.apply(classify_weather_condition, axis=1).map(condition_icons)
-    display_df = display_df[["hour", "condition", "temperature", "precipitation", "snowfall", "windspeed", "cloudcover"]]
+        def hour_label(h):
+            if h < 6:    return f"🌙 {h:02d}:00"
+            elif h < 12: return f"🌅 {h:02d}:00"
+            elif h < 19: return f"☀️ {h:02d}:00"
+            else:        return f"🌆 {h:02d}:00"
 
-    st.dataframe(
-        display_df,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "hour":          st.column_config.TextColumn("🕐 Hour"),
-            "condition":     st.column_config.TextColumn("Condition"),
-            "temperature":   st.column_config.NumberColumn("🌡️ Temp",  format="%.1f °C"),
-            "precipitation": st.column_config.NumberColumn("🌧️ Rain",  format="%.1f mm"),
-            "snowfall":      st.column_config.NumberColumn("❄️ Snow",  format="%.1f cm"),
-            "windspeed":     st.column_config.NumberColumn("💨 Wind",  format="%.1f km/h"),
-            "cloudcover":    st.column_config.ProgressColumn(
-                "☁️ Clouds", format="%d%%", min_value=0, max_value=100
-            ),
-        }
-    )
+        display_df["hour"]      = display_df["hour"].apply(hour_label)
+        display_df["condition"] = weather_df.apply(classify_weather_condition, axis=1).map(condition_icons)
+        display_df = display_df[["hour", "condition", "temperature", "precipitation", "snowfall", "windspeed", "cloudcover"]]
 
-    # ── MODEL INFO ────────────────────────────────────────────────────────────
+        st.dataframe(
+            display_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "hour":          st.column_config.TextColumn("🕐 Hour"),
+                "condition":     st.column_config.TextColumn("Condition"),
+                "temperature":   st.column_config.NumberColumn("🌡️ Temp",  format="%.1f °C"),
+                "precipitation": st.column_config.NumberColumn("🌧️ Rain",  format="%.1f mm"),
+                "snowfall":      st.column_config.NumberColumn("❄️ Snow",  format="%.1f cm"),
+                "windspeed":     st.column_config.NumberColumn("💨 Wind",  format="%.1f km/h"),
+                "cloudcover":    st.column_config.ProgressColumn(
+                    "☁️ Clouds", format="%d%%", min_value=0, max_value=100
+                ),
+            }
+        )
+    else:
+        st.caption("📅 Weather based on historical daily average (same day, last 3 years) — hourly breakdown not available for dates beyond 16 days.")
+
+    # ── MODEL INFO + QUELLEN ──────────────────────────────────────────────────
     st.markdown("---")
-    w = result["weather_used"]
-    st.caption(
-        f"Model inputs at {dep_hour:02d}:00 — "
-        f"Temp={w['TEMP']}°C · Rain={w['PRCP_H']}mm · "
-        f"Snow={w['SNOW_H']}cm · Wind={w['WIND']}m/s · Cloud={w['CLOUD']}% · "
-        f"Trained on 2015 US flight data (XGBoost)"
-    )
+
+    col_a, col_b = st.columns(2, gap="large")
+
+    with col_a:
+        st.markdown("**Model Input Variables**")
+        w = result["weather_used"]
+        st.markdown(f"""
+        | Variable | Value | Description |
+        |---|---|---|
+        | Month | {flight_date.month} | Month of departure |
+        | Day of Week | {flight_date.isoweekday()} | 1=Mon, 7=Sun |
+        | Departure Hour | {dep_hour}:00 | Scheduled departure time |
+        | Airline | {airline_code} | Airline code |
+        | Origin | {origin_code} | Departure airport |
+        | Destination | {dest_code} | Arrival airport |
+        | Distance | {result['distance_km']:,} km | Flight distance |
+        | Temperature | {w['TEMP']} °C | Temp at departure time |
+        | Precipitation | {w['PRCP_H']} mm | Rain at departure time |
+        | Snowfall | {w['SNOW_H']} cm | Snow at departure time |
+        | Wind | {round(w['WIND'], 1)} m/s | Wind at departure time |
+        | Cloud Cover | {w['CLOUD']} % | Clouds at departure time |
+        """)
+
+    with col_b:
+        st.markdown("**Data Sources**")
+        st.markdown("""
+        | Source | Usage |
+        |---|---|
+        | [Kaggle – US Flight Delays 2015](https://www.kaggle.com/datasets/usdot/flight-delays) | Training data (5.8M flights) |
+        | [Open-Meteo Archive API](https://open-meteo.com) | Historical weather (training + past dates) |
+        | [Open-Meteo Forecast API](https://open-meteo.com) | Weather forecast (< 16 days) |
+
+        **Model**
+        | | |
+        |---|---|
+        | Algorithm | XGBoost |
+        | Training flights | 879,956 |
+        | Binary accuracy | 68.8% |
+        | Multiclass accuracy | 79.8% |
+        | Delay threshold | ≥ 15 minutes |
+        """)
