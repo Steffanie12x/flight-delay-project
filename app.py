@@ -166,9 +166,9 @@ st.markdown("""
         Why this tool?
     </div>
     <div style="color:#333333; font-size:0.9rem; line-height:2.1;">
-        ✈ &nbsp; The Friday flight to Mallorca at 08:00 is often delayed — consider booking a different day.<br>
-        🔗 &nbsp; Got a connecting flight? Check the risk and plan enough buffer time.<br>
-        📊 &nbsp; Which airline is the most reliable on your route?
+        ✈ &nbsp; The Friday afternoon flight from JFK is often delayed — consider booking a different time.<br>
+        → &nbsp; Got a connecting flight? Check the risk and plan enough buffer time.<br>
+        → &nbsp; Which airline is the most reliable on your route?
     </div>
 </div>
 """, unsafe_allow_html=True)
