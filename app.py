@@ -167,8 +167,8 @@ st.markdown("""
     </div>
     <div style="color:#333333; font-size:0.9rem; line-height:2.1;">
         ✈ &nbsp; The Friday afternoon flight from JFK is often delayed — consider booking a different time.<br>
-        → &nbsp; Got a connecting flight? Check the risk and plan enough buffer time.<br>
-        → &nbsp; Which airline is the most reliable on your route?
+        ▸ &nbsp; Got a connecting flight? Check the risk and plan enough buffer time.<br>
+        ▸ &nbsp; Which airline is the most reliable on your route?
     </div>
 </div>
 """, unsafe_allow_html=True)
