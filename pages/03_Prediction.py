@@ -276,25 +276,52 @@ if predict_btn:
     is_daily_avg = weather_df["temperature"].nunique() == 1
     if not is_daily_avg:
         st.subheader("Full Day Weather Overview")
-        display_df = weather_df.copy()
-        def hour_label(h):
-            if h < 6:    return f"🌙 {h:02d}:00"
-            elif h < 12: return f"🌅 {h:02d}:00"
-            elif h < 19: return f"☀️ {h:02d}:00"
-            else:        return f"🌆 {h:02d}:00"
-        display_df["hour"]      = display_df["hour"].apply(hour_label)
-        display_df["condition"] = weather_df.apply(classify_weather_condition, axis=1).map(condition_icons)
-        display_df = display_df[["hour", "condition", "temperature", "precipitation", "snowfall", "windspeed", "cloudcover"]]
-        st.dataframe(display_df, use_container_width=True, hide_index=True,
-            column_config={
-                "hour":          st.column_config.TextColumn("🕐 Hour"),
-                "condition":     st.column_config.TextColumn("Condition"),
-                "temperature":   st.column_config.NumberColumn("🌡️ Temp",  format="%.1f °C"),
-                "precipitation": st.column_config.NumberColumn("🌧️ Rain",  format="%.1f mm"),
-                "snowfall":      st.column_config.NumberColumn("❄️ Snow",  format="%.1f cm"),
-                "windspeed":     st.column_config.NumberColumn("💨 Wind",  format="%.1f km/h"),
-                "cloudcover":    st.column_config.ProgressColumn("☁️ Clouds", format="%d%%", min_value=0, max_value=100),
-            })
+
+        cond_emoji = {
+            "Heavy Snow": "❄️", "Light Snow": "🌨️",
+            "Heavy Rain": "🌧️", "Light Rain": "🌦️",
+            "Strong Wind": "💨", "Overcast": "☁️", "Good": "☀️",
+        }
+
+        cards_html = ""
+        for _, row in weather_df.iterrows():
+            h      = int(row["hour"])
+            is_dep = h == dep_hour
+            cond   = classify_weather_condition(row)
+            emoji  = cond_emoji.get(cond, "🌤️")
+            prcp   = float(row["precipitation"] or 0)
+            wind   = float(row["windspeed"] or 0)
+            temp   = float(row["temperature"] or 0)
+
+            if is_dep:
+                card_style = f"background:linear-gradient(160deg,{risk_color} 0%,#6366f1 100%);border:none;box-shadow:0 4px 14px {risk_color}55;"
+                text_main  = "color:#ffffff;"
+                text_sub   = "color:rgba(255,255,255,0.75);"
+                hour_style = "color:rgba(255,255,255,0.85);font-weight:700;"
+                dot        = f'<div style="width:6px;height:6px;border-radius:50%;background:#fff;margin:0 auto 4px;opacity:0.9;"></div>'
+            else:
+                card_style = "background:#f8fafc;border:1px solid #e5e7eb;"
+                text_main  = "color:#111111;"
+                text_sub   = "color:#9ca3af;"
+                hour_style = "color:#6b7280;font-weight:500;"
+                dot        = ""
+
+            cards_html += f"""<div style="flex:0 0 auto;width:80px;border-radius:16px;padding:0.9rem 0.5rem;text-align:center;{card_style}">
+{dot}
+<div style="font-size:0.7rem;letter-spacing:0.04em;{hour_style}margin-bottom:0.4rem;">{h:02d} h</div>
+<div style="font-size:1.5rem;font-weight:700;{text_main}margin-bottom:0.2rem;">{temp:.0f}°</div>
+<div style="font-size:1.6rem;margin-bottom:0.4rem;">{emoji}</div>
+<div style="font-size:0.7rem;{text_sub}margin-bottom:0.15rem;">💧 {prcp:.0f}%</div>
+<div style="font-size:0.7rem;{text_sub}">💨 {wind:.0f}</div>
+</div>"""
+
+        st.markdown(f"""
+<div style="background:#f1f5f9;border-radius:20px;padding:1.25rem 1rem;">
+<div style="display:flex;gap:0.5rem;overflow-x:auto;padding-bottom:0.25rem;scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent;">
+{cards_html}
+</div>
+</div>
+""", unsafe_allow_html=True)
     else:
         st.caption("📅 Weather based on historical daily average (same day, last 3 years) — hourly breakdown not available for dates beyond 16 days.")
 

@@ -121,13 +121,13 @@ st.markdown(f"""
         color: #ffffff;
     ">
         <div class="hero-label" style="font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; margin-bottom:0.75rem;">
-            ATL · ORD · JFK · LAX · DEN
+            ATL · BOS · DEN · DFW · DTW · EWR · IAH · JFK · LAS · LAX · MCO · MSP · ORD · PHX · SEA · SFO
         </div>
         <h1 style="font-size:3rem; font-weight:700; color:#ffffff; margin:0 0 0.75rem; line-height:1.1; letter-spacing:-0.02em;">
             Flight Delay
         </h1>
         <p style="color:#ffffff; font-size:1rem; margin:0 0 1.5rem; max-width:480px; line-height:1.6;">
-            Analyze delay patterns from the 5 busiest US airports — by airline, time and destination.
+            Analyze delay patterns from the 16 busiest US airports — by airline, time and destination.
         </p>
     </div>
 </div>
@@ -148,7 +148,7 @@ st.markdown("""
 ">
     <em>„Passengers often do not know how risky a planned flight is in terms of delays.
     Our website helps them understand historical delay patterns and estimates the delay
-    probability for a specific flight from one of the 5 busiest US airports."</em>
+    probability for a specific flight from one of the 16 busiest US airports."</em>
 </div>
 """, unsafe_allow_html=True)
 
@@ -166,79 +166,13 @@ st.markdown("""
         Why this tool?
     </div>
     <div style="color:#333333; font-size:0.9rem; line-height:2.1;">
-        ✈ &nbsp; The Friday flight to Mallorca at 08:00 is often delayed — consider booking a different day.<br>
-        🔗 &nbsp; Got a connecting flight? Check the risk and plan enough buffer time.<br>
-        📊 &nbsp; Which airline is the most reliable on your route?
+        ✈ &nbsp; The Friday afternoon flight from JFK is often delayed — consider booking a different time.<br>
+        ▸ &nbsp; Got a connecting flight? Check the risk and plan enough buffer time.<br>
+        ▸ &nbsp; Which airline is the most reliable on your route?
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ── 3 Seiten-Cards ────────────────────────────────────────────────────────────
-# Erstellt drei gleichbreite Spalten für die Navigations-Karten
-col1, col2, col3 = st.columns(3, gap="medium")
-
-# Card 1: Dashboard-Seite (blauer Akzent)
-with col1:
-    st.markdown("""
-    <div style="
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-top: 2px solid #3B82F6;
-        border-radius: 0 0 12px 12px;
-        padding: 1.25rem;
-        height: 130px;
-    ">
-        <div style="font-size:0.7rem; color:#3B82F6; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.5rem;">
-            01 — Dashboard
-        </div>
-        <div style="color:#111111; font-weight:600; margin-bottom:0.4rem;">Überblick & Key Metrics</div>
-        <div style="color:#666666; font-size:0.82rem; line-height:1.5;">
-            Verspätungsrate, beste & schlechteste Airlines, Delay nach Monat und Wochentag.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-# Card 2: Analysis-Seite (lila Akzent)
-with col2:
-    st.markdown("""
-    <div style="
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-top: 2px solid #6366F1;
-        border-radius: 0 0 12px 12px;
-        padding: 1.25rem;
-        height: 130px;
-    ">
-        <div style="font-size:0.7rem; color:#6366F1; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.5rem;">
-            02 — Analysis
-        </div>
-        <div style="color:#111111; font-weight:600; margin-bottom:0.4rem;">Interaktive Diagramme</div>
-        <div style="color:#666666; font-size:0.82rem; line-height:1.5;">
-            Delay nach Airline, Uhrzeit, Wochentag, Destination — filterbar und interaktiv.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-# Card 3: Prediction-Seite (grüner Akzent)
-with col3:
-    st.markdown("""
-    <div style="
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-top: 2px solid #10B981;
-        border-radius: 0 0 12px 12px;
-        padding: 1.25rem;
-        height: 130px;
-    ">
-        <div style="font-size:0.7rem; color:#10B981; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.5rem;">
-            03 — Prediction
-        </div>
-        <div style="color:#111111; font-weight:600; margin-bottom:0.4rem;">ML-Prognose</div>
-        <div style="color:#666666; font-size:0.82rem; line-height:1.5;">
-            Airline, Destination und Datum eingeben — Delay-Wahrscheinlichkeit berechnen.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
 
 # ── About Us & Stay Informed ──────────────────────────────────────────────────
 # Zwei klickbare Buttons zentriert, öffnen jeweils ein Modal-Fenster
@@ -249,50 +183,21 @@ def show_about():
     st.markdown("""
     **Flight Delay USA** is a student project developed at the University of St. Gallen.
 
-    Our goal is to make flight delay data from the 5 busiest US airports (ATL, ORD, JFK, LAX, DEN) accessible and understandable —
+    Our goal is to make flight delay data from the 16 busiest US airports accessible and understandable —
     helping travelers make smarter booking decisions.
 
     ---
     **Team**
-    - Placeholder Name · Data & Backend
-    - Placeholder Name · Analysis & Visualization
-    - Placeholder Name · ML & Prediction
+    - Data Research · Nils Wälti
+    - Machine Learning · Benjamin Marbacher & Silas Marty
+    - Meteo API · Stefanie Seiler
+    - Website Design · Sára Jankovičová
 
     ---
     **Data Source**
-    Historical flight data from ATL, ORD, JFK, LAX and DEN, combined with weather data from Open-Meteo.
+    Historical flight data from 16 US airports (ATL, BOS, DEN, DFW, DTW, EWR, IAH, JFK, LAS, LAX, MCO, MSP, ORD, PHX, SEA, SFO) sourced from the Bureau of Transportation Statistics (BTS). Weather data via Open-Meteo API.
     """)
 
-@st.dialog("Stay Informed")
-def show_newsletter():
-    # Formular zur Newsletter-Anmeldung für Verspätungsbenachrichtigungen
-    st.markdown("Get notified about major delays at US airports directly in your inbox.")
-    st.markdown("<br>", unsafe_allow_html=True)
-    email = st.text_input("Your email address", placeholder="you@example.com")
-    st.selectbox("Airline you fly most often (optional)", [
-        "— no preference —", "Swiss", "Lufthansa", "easyJet", "LATAM", "British Airways",
-        "Air France", "KLM", "Iberia", "Turkish Airlines", "Other"
-    ])
-    if st.button("Subscribe", type="primary"):
-        if email and "@" in email:
-            st.success(f"Thanks! We'll notify {email} about major delays.")
-        else:
-            st.error("Please enter a valid email address.")
-
-# Abstand vor den Buttons
-st.markdown("<br><br>", unsafe_allow_html=True)
-st.markdown("<div style='border-top:1px solid #e0e0e0; margin-bottom:2rem;'></div>", unsafe_allow_html=True)
-
-# Buttons zentriert in der Mitte der Seite
-_, btn_col1, btn_col2, _ = st.columns([2, 1, 1, 2])
-
-with btn_col1:
-    if st.button("About Us", use_container_width=True):
-        show_about()
-
-with btn_col2:
-    if st.button("Stay Informed", use_container_width=True):
-        show_newsletter()
 
 # ── DELAY CHARTS ─────────────────────────────────────────────────────────────
 # Drei interaktive Diagramme basierend auf 2015 BTS-Flugdaten
@@ -414,6 +319,14 @@ st.plotly_chart(fig_airline, use_container_width=True)
 # ── Footer ────────────────────────────────────────────────────────────────────
 # Zeigt Projektinfo zentriert am Seitenende
 st.markdown("<br>", unsafe_allow_html=True)
+# ── About Us & Stay Informed Buttons ─────────────────────────────────────────
+st.markdown("<br>", unsafe_allow_html=True)
+_, btn_col, _ = st.columns([3, 1, 3])
+
+with btn_col:
+    if st.button("About Us", use_container_width=True):
+        show_about()
+
 st.markdown("""
 <div style="border-top:1px solid #e0e0e0; padding-top:1rem; text-align:center;
     color:#aaaaaa; font-size:0.72rem;">
