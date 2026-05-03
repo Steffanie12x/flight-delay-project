@@ -6,3 +6,4 @@ xgboost
 requests
 numpy
 plotly
+anthropic
