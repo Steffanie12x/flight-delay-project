@@ -129,7 +129,7 @@ if uploaded_file is not None and not st.session_state.bp_scanned:
             b64        = base64.standard_b64encode(file_bytes).decode("utf-8")
             media_type = "application/pdf" if uploaded_file.type == "application/pdf" else uploaded_file.type
 
-            cclient = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
+            client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
             prompt = """Look at this boarding pass and extract the following information.
 Return ONLY a JSON object with these exact keys (no other text):
 {
