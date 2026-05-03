@@ -127,7 +127,7 @@ st.markdown(f"""
             Flight Delay
         </h1>
         <p style="color:#ffffff; font-size:1rem; margin:0 0 1.5rem; max-width:480px; line-height:1.6;">
-            Analyze delay patterns from the 5 busiest US airports — by airline, time and destination.
+            Analyze delay patterns from the 16 busiest US airports — by airline, time and destination.
         </p>
     </div>
 </div>
@@ -148,7 +148,7 @@ st.markdown("""
 ">
     <em>„Passengers often do not know how risky a planned flight is in terms of delays.
     Our website helps them understand historical delay patterns and estimates the delay
-    probability for a specific flight from one of the 5 busiest US airports."</em>
+    probability for a specific flight from one of the 16 busiest US airports."</em>
 </div>
 """, unsafe_allow_html=True)
 
@@ -183,7 +183,7 @@ def show_about():
     st.markdown("""
     **Flight Delay USA** is a student project developed at the University of St. Gallen.
 
-    Our goal is to make flight delay data from the 5 busiest US airports (ATL, ORD, JFK, LAX, DEN) accessible and understandable —
+    Our goal is to make flight delay data from the 16 busiest US airports accessible and understandable —
     helping travelers make smarter booking decisions.
 
     ---
