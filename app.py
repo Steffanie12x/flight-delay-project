@@ -198,21 +198,6 @@ def show_about():
     Historical flight data from 16 US airports (ATL, BOS, DEN, DFW, DTW, EWR, IAH, JFK, LAS, LAX, MCO, MSP, ORD, PHX, SEA, SFO) sourced from the Bureau of Transportation Statistics (BTS). Weather data via Open-Meteo API.
     """)
 
-@st.dialog("Stay Informed")
-def show_newsletter():
-    # Formular zur Newsletter-Anmeldung für Verspätungsbenachrichtigungen
-    st.markdown("Get notified about major delays at US airports directly in your inbox.")
-    st.markdown("<br>", unsafe_allow_html=True)
-    email = st.text_input("Your email address", placeholder="you@example.com")
-    st.selectbox("Airline you fly most often (optional)", [
-        "— no preference —", "Swiss", "Lufthansa", "easyJet", "LATAM", "British Airways",
-        "Air France", "KLM", "Iberia", "Turkish Airlines", "Other"
-    ])
-    if st.button("Subscribe", type="primary"):
-        if email and "@" in email:
-            st.success(f"Thanks! We'll notify {email} about major delays.")
-        else:
-            st.error("Please enter a valid email address.")
 
 # ── DELAY CHARTS ─────────────────────────────────────────────────────────────
 # Drei interaktive Diagramme basierend auf 2015 BTS-Flugdaten
@@ -336,15 +321,11 @@ st.plotly_chart(fig_airline, use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 # ── About Us & Stay Informed Buttons ─────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
-_, btn_col1, btn_col2, _ = st.columns([2, 1, 1, 2])
+_, btn_col, _ = st.columns([3, 1, 3])
 
-with btn_col1:
+with btn_col:
     if st.button("About Us", use_container_width=True):
         show_about()
-
-with btn_col2:
-    if st.button("Stay Informed", use_container_width=True):
-        show_newsletter()
 
 st.markdown("""
 <div style="border-top:1px solid #e0e0e0; padding-top:1rem; text-align:center;
