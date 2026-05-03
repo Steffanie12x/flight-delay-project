@@ -188,10 +188,10 @@ def show_about():
 
     ---
     **Team**
-    - Website Design · Sára Jankovičová
+    - Data Research · Nils Wälti
     - Machine Learning · Benjamin Marchbacher & Silas Noah Marty
     - Meteo API · Stefanie Seiler
-    - Data Research · Nils Wälti
+    - Website Design · Sára Jankovičová
 
     ---
     **Data Source**
