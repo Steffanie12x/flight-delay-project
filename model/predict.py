@@ -85,6 +85,66 @@ def _get_distance(origin: str, destination: str) -> float:
     return round(6371 * 2 * math.asin(math.sqrt(a)), 0)
 
 
+def _build_factors(input_data: dict, feat_imp: dict) -> list:
+    if not feat_imp:
+        return []
+
+    max_imp = max(feat_imp.values()) or 1.0
+
+    def level(feat):
+        n = feat_imp.get(feat, 0) / max_imp
+        if n > 0.5:   return "high"
+        elif n > 0.2: return "medium"
+        else:          return "low"
+
+    factors = []
+
+    w_norm = max(feat_imp.get(k, 0) for k in ["PRCP_H", "SNOW_H", "WIND", "TEMP", "CLOUD"]) / max_imp
+    w_lvl  = "high" if w_norm > 0.4 else "medium" if w_norm > 0.2 else "low"
+    prcp   = input_data.get("PRCP_H", 0)
+    snow   = input_data.get("SNOW_H", 0)
+    wind   = input_data.get("WIND", 0)
+
+    if snow > 5:
+        factors.append({"label": "Heavy snowfall",    "impact": w_lvl})
+    elif snow > 0:
+        factors.append({"label": "Snowfall",           "impact": w_lvl})
+    elif prcp > 10:
+        factors.append({"label": "Heavy rain",         "impact": w_lvl})
+    elif prcp > 2:
+        factors.append({"label": "Light rain",         "impact": "medium" if w_lvl != "low" else "low"})
+    elif wind > 15:
+        factors.append({"label": "Strong wind",        "impact": "medium"})
+    else:
+        factors.append({"label": "Favorable weather",  "impact": "low"})
+
+    dep_hour = input_data.get("DEP_HOUR", 12)
+    if dep_hour >= 18:
+        factors.append({"label": f"Evening departure ({dep_hour:02d}:00)", "impact": level("DEP_HOUR")})
+    elif dep_hour < 7:
+        factors.append({"label": "Early morning departure",                "impact": "low"})
+
+    dow   = input_data.get("DAY_OF_WEEK", 1)
+    _days = {1:"Monday",2:"Tuesday",3:"Wednesday",4:"Thursday",5:"Friday",6:"Saturday",7:"Sunday"}
+    if dow in (1, 5):
+        factors.append({"label": f"{_days.get(dow, '')} flight", "impact": level("DAY_OF_WEEK")})
+
+    airline_name = AIRLINE_NAMES.get(input_data.get("AIRLINE", ""), "")
+    if airline_name:
+        factors.append({"label": airline_name, "impact": level("AIRLINE")})
+
+    month    = input_data.get("MONTH", 6)
+    _seasons = {12:"Winter",1:"Winter",2:"Winter",3:"Spring",4:"Spring",5:"Spring",
+                6:"Summer",7:"Summer",8:"Summer",9:"Fall",10:"Fall",11:"Fall"}
+    season   = _seasons.get(month, "")
+    if season:
+        factors.append({"label": f"{season} season", "impact": level("MONTH")})
+
+    _order = {"high": 0, "medium": 1, "low": 2}
+    factors.sort(key=lambda f: _order.get(f["impact"], 3))
+    return factors[:6]
+
+
 def predict_delay(airline, origin, destination, flight_date, dep_hour, weather_df):
     if _binary_model is None:
         return {"error": "Modell nicht geladen."}
@@ -133,6 +193,24 @@ def predict_delay(airline, origin, destination, flight_date, dep_hour, weather_d
         display_mode, display_category = "show_category", best_delay_cat
         risk_level, risk_color = "High", "#EF4444"
 
+    category_distribution = {}
+    try:
+        cat_probs  = _multi_model.predict_proba(df)[0]
+        cat_labels = [str(c) for c in _multi_model._label_encoder.classes_]
+        category_distribution = {
+            lbl: round(float(p) * 100)
+            for lbl, p in zip(cat_labels, cat_probs)
+        }
+    except Exception:
+        pass
+
+    top_factors = []
+    try:
+        feat_imp    = dict(zip(_feature_list, _binary_model.feature_importances_.tolist()))
+        top_factors = _build_factors(input_data, feat_imp)
+    except Exception:
+        pass
+
     return {
         "delay_probability":     round(float(delay_prob), 3),
         "delay_probability_pct": f"{delay_prob:.0%}",
@@ -143,7 +221,8 @@ def predict_delay(airline, origin, destination, flight_date, dep_hour, weather_d
         "all_categories":        {cat: round(float(prob), 3) for cat, prob in zip(categories, all_probs)},
         "weather_used":          weather,
         "distance_km":           distance_km,
-        "is_likely_delayed":     delay_prob >= 0.33,
+        "category_distribution": category_distribution,
+        "top_factors":           top_factors,
     }
 
 

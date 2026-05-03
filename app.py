@@ -1,8 +1,12 @@
 # Streamlit-Bibliothek importieren (Web-App-Framework)
 import streamlit as st
+import plotly.graph_objects as go
 
 # Gemeinsame Navbar-Funktion importieren
 from utils.navbar import show_navbar
+
+# Aggregierte Delay-Daten für die Charts importieren
+from utils.dashboard_data import get_delay_by_hour, get_delay_by_weekday, get_delay_by_airline
 
 # ── Seitenkonfiguration ───────────────────────────────────────────────────────
 # Setzt Titel, Icon, Layout und Sidebar-Status der App
@@ -290,12 +294,129 @@ with btn_col2:
     if st.button("Stay Informed", use_container_width=True):
         show_newsletter()
 
+# ── DELAY CHARTS ─────────────────────────────────────────────────────────────
+# Drei interaktive Diagramme basierend auf 2015 BTS-Flugdaten
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("<div style='border-top:1px solid #e0e0e0; margin-bottom:2rem;'></div>", unsafe_allow_html=True)
+
+# Daten laden
+df_hour    = get_delay_by_hour()
+df_weekday = get_delay_by_weekday()
+df_airline = get_delay_by_airline()
+
+# Gemeinsame Farben und Stil-Einstellungen für alle Charts
+COLOR_LINE = "#3B82F6"
+COLOR_BAR  = "#6366F1"
+COLOR_GRID = "#f0f0f0"
+LAYOUT_BASE = dict(
+    plot_bgcolor="#ffffff",
+    paper_bgcolor="#ffffff",
+    font=dict(family="sans-serif", size=12, color="#333333"),
+)
+
+# ── Chart 1: Verspätungen nach Tageszeit ──────────────────────────────────────
+st.subheader("Delays by Time of Day")
+st.caption("Share of flights delayed > 15 min — delays accumulate over the course of the day.")
+
+# Stundenbeschriftungen für die X-Achse
+hour_labels = [f"{h:02d}:00" for h in df_hour["hour"]]
+
+fig_hour = go.Figure()
+# Gefüllte Fläche unter der Kurve für bessere Lesbarkeit
+fig_hour.add_trace(go.Scatter(
+    x=hour_labels,
+    y=df_hour["delay_pct"],
+    mode="lines",
+    line=dict(color=COLOR_LINE, width=2.5, shape="spline"),
+    fill="tozeroy",
+    fillcolor="rgba(59,130,246,0.12)",
+    hovertemplate="%{x}: %{y}%<extra></extra>",
+))
+fig_hour.update_layout(
+    **LAYOUT_BASE,
+    height=300,
+    margin=dict(l=0, r=0, t=30, b=0),
+    xaxis=dict(
+        title="Departure Hour",
+        gridcolor=COLOR_GRID,
+        tickvals=hour_labels[::2],   # Nur jede zweite Stunde anzeigen
+        ticktext=hour_labels[::2],
+    ),
+    yaxis=dict(title="% Flights Delayed", gridcolor=COLOR_GRID, ticksuffix="%", range=[0, 45]),
+    showlegend=False,
+)
+st.plotly_chart(fig_hour, use_container_width=True)
+
+st.markdown("---")
+
+# ── Chart 2: Verspätungen nach Wochentag ──────────────────────────────────────
+st.subheader("Delays by Day of Week")
+st.caption("Friday has the highest delay rate — busiest travel day with cumulative delays.")
+
+# Freitag rot hervorheben, alle anderen lila
+bar_colors_weekday = ["#EF4444" if d == "Fri" else COLOR_BAR for d in df_weekday["day"]]
+
+fig_weekday = go.Figure()
+fig_weekday.add_trace(go.Bar(
+    x=df_weekday["day"],
+    y=df_weekday["delay_pct"],
+    marker_color=bar_colors_weekday,
+    marker_line_width=0,
+    text=[f"{v}%" for v in df_weekday["delay_pct"]],
+    textposition="outside",
+    hovertemplate="%{x}: %{y}%<extra></extra>",
+))
+fig_weekday.update_layout(
+    **LAYOUT_BASE,
+    height=300,
+    margin=dict(l=0, r=0, t=30, b=0),
+    xaxis=dict(title="Day of Week", gridcolor=COLOR_GRID),
+    yaxis=dict(title="% Flights Delayed", gridcolor=COLOR_GRID, ticksuffix="%", range=[0, 30]),
+    showlegend=False,
+    bargap=0.35,
+)
+st.plotly_chart(fig_weekday, use_container_width=True)
+
+st.markdown("---")
+
+# ── Chart 3: Verspätungen nach Airline ────────────────────────────────────────
+st.subheader("Delays by Airline")
+st.caption("Sorted from most to least punctual — green < 16%, yellow 16–22%, red > 22%.")
+
+# Farbe je nach Verspätungsrate: grün → gelb → rot
+def airline_color(pct):
+    if pct < 16:   return "#10B981"
+    elif pct < 22: return "#F59E0B"
+    else:          return "#EF4444"
+
+fig_airline = go.Figure()
+fig_airline.add_trace(go.Bar(
+    x=df_airline["delay_pct"],
+    y=df_airline["airline"],
+    orientation="h",
+    marker_color=[airline_color(p) for p in df_airline["delay_pct"]],
+    marker_line_width=0,
+    text=[f"{v}%" for v in df_airline["delay_pct"]],
+    textposition="outside",
+    hovertemplate="%{y}: %{x}%<extra></extra>",
+))
+fig_airline.update_layout(
+    **LAYOUT_BASE,
+    height=420,
+    margin=dict(l=0, r=50, t=30, b=0),
+    xaxis=dict(title="% Flights Delayed", gridcolor=COLOR_GRID, ticksuffix="%", range=[0, 34]),
+    yaxis=dict(title="", gridcolor=COLOR_GRID, automargin=True),
+    showlegend=False,
+    bargap=0.25,
+)
+st.plotly_chart(fig_airline, use_container_width=True)
+
 # ── Footer ────────────────────────────────────────────────────────────────────
 # Zeigt Projektinfo zentriert am Seitenende
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("""
 <div style="border-top:1px solid #e0e0e0; padding-top:1rem; text-align:center;
     color:#aaaaaa; font-size:0.72rem;">
-    CS Project · University of St. Gallen · US Airport Flight Data · 2026
+    CS Project · University of St. Gallen · US Airport Flight Data · 2026 · Source: BTS 2015
 </div>
 """, unsafe_allow_html=True)

@@ -97,7 +97,7 @@ def show_navbar():
 
     # ── Navigationsleiste ─────────────────────────────────────────────────────
     # App-Name links, Seiten-Links rechts — breitere Spalten damit kein Text abgeschnitten wird
-    nav_logo, nav_space, nav1, nav2, nav3 = st.columns([3, 3, 1.5, 1.5, 1.5])
+    nav_logo, nav_space, nav1, nav2 = st.columns([3, 4.5, 1.5, 1.5])
     with nav_logo:
         st.markdown(
             "<div style='font-size:2rem; font-weight:800; padding-top:0.4rem;'>"
@@ -105,11 +105,9 @@ def show_navbar():
             unsafe_allow_html=True
         )
     with nav1:
-        # Dashboard verlinkt auf die Startseite (app.py), die das Hero-Bild enthält
+        # Dashboard verlinkt auf die Startseite (app.py) mit Hero und Charts
         st.page_link("app.py", label="Dashboard")
     with nav2:
-        st.page_link("pages/02_Analysis.py", label="Analysis")
-    with nav3:
         st.page_link("pages/03_Prediction.py", label="Prediction")
 
     # Trennlinie unter der Navbar
