@@ -33,7 +33,6 @@ h3 { font-weight: 600 !important; }
     text-transform: uppercase !important;
     opacity: 0.7 !important;
 }
-hr { opacity: 0.15 !important; }
 </style>
 """, unsafe_allow_html=True)
 
