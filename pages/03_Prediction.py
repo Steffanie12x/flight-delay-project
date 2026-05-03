@@ -23,10 +23,6 @@ show_navbar()
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-html, body, [class*="css"], .stMarkdown, .stText, h1, h2, h3, p, div {
-    font-family: 'Inter', sans-serif !important;
-}
 h1 { font-weight: 700 !important; letter-spacing: -0.02em !important; }
 h2 { font-weight: 600 !important; letter-spacing: -0.01em !important; }
 h3 { font-weight: 600 !important; }
