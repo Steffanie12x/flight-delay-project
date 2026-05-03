@@ -12,13 +12,16 @@ from datetime import datetime
 MODEL_DIR = "models"
 
 AIRLINE_NAMES = {
-    "AA": "American Airlines",    "AS": "Alaska Airlines",
-    "B6": "JetBlue Airways",      "DL": "Delta Air Lines",
-    "EV": "Atlantic Southeast Airlines", "F9": "Frontier Airlines",
-    "HA": "Hawaiian Airlines",    "MQ": "American Eagle Airlines",
-    "NK": "Spirit Air Lines",     "OO": "Skywest Airlines",
-    "UA": "United Air Lines",     "US": "US Airways",
-    "VX": "Virgin America",       "WN": "Southwest Airlines",
+    "AA": "American Airlines",
+    "AS": "Alaska Airlines",
+    "B6": "JetBlue Airways",
+    "DL": "Delta Air Lines",
+    "F9": "Frontier Airlines",
+    "HA": "Hawaiian Airlines",
+    "MQ": "Envoy Air (American Eagle)",
+    "OO": "SkyWest Airlines",
+    "UA": "United Air Lines",
+    "WN": "Southwest Airlines",
 }
 
 AIRPORT_NAMES = {
