@@ -1,4 +1,5 @@
 import streamlit as st
+import base64, pathlib
 
 def show_navbar():
     # ── Globales CSS-Styling ──────────────────────────────────────────────────
@@ -99,9 +100,12 @@ def show_navbar():
     # App-Name links, Seiten-Links rechts — breitere Spalten damit kein Text abgeschnitten wird
     nav_logo, nav_space, nav1, nav2 = st.columns([3, 4.5, 1.5, 1.5])
     with nav_logo:
+        _logo_b64 = base64.b64encode(pathlib.Path("logo.png").read_bytes()).decode()
         st.markdown(
-            "<div style='font-size:2rem; font-weight:800; padding-top:0.4rem;'>"
-            "Flight Delay <span style='color:#6B7280; font-weight:400; font-size:1.5rem;'>· USA</span></div>",
+            f"<div style='display:flex; align-items:center; gap:0.6rem; padding-top:0.4rem;'>"
+            f"<img src='data:image/png;base64,{_logo_b64}' style='height:2.2rem; width:auto;'/>"
+            f"<span style='font-size:2rem; font-weight:800;'>Flight Delay</span>"
+            f"<span style='color:#6B7280; font-weight:400; font-size:1.5rem;'>· USA</span></div>",
             unsafe_allow_html=True
         )
     with nav1:
