@@ -33,7 +33,6 @@ h3 { font-weight: 600 !important; }
     text-transform: uppercase !important;
     opacity: 0.7 !important;
 }
-hr { opacity: 0.15 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -73,10 +72,10 @@ with col1:
     )
     origin_code = airport_options[origin_name]
 
-        airline_options    = get_airline_options()
-        DEFUNCT_NAMES = {"Spirit Air Lines", "US Airways", "Virgin America", "Atlantic Southeast Airlines"}
-        airline_options    = {k: v for k, v in airline_options.items() if k not in DEFUNCT_NAMES}
-        airline_names_list = list(airline_options.keys())
+    airline_options    = get_airline_options()
+    DEFUNCT_NAMES = {"Spirit Air Lines", "US Airways", "Virgin America", "Atlantic Southeast Airlines"}
+    airline_options    = {k: v for k, v in airline_options.items() if k not in DEFUNCT_NAMES}
+    airline_names_list = list(airline_options.keys())
     default_airline_idx = 0
     if st.session_state.bp_airline:
         for i, (name, code) in enumerate(airline_options.items()):
