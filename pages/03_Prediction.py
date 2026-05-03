@@ -2,12 +2,6 @@
 pages/03_Prediction.py
 ======================
 ML-Vorhersage-Seite der Flight Delay App.
-
-ÄNDERUNGEN gegenüber Version 1:
-- Weisser Text in der Ergebnis-Box
-- 33% Benchmark Anzeigelogik
-- Alle Kategorien mit Wahrscheinlichkeiten anzeigen
-- Stündliche Wetterdaten
 """
 
 import streamlit as st
@@ -16,7 +10,6 @@ from utils.navbar import show_navbar
 from utils.weather import get_weather, classify_weather_condition, get_airport_list
 from model.predict import predict_delay, get_airline_options, get_destination_options
 
-# ── Seitenkonfiguration ───────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Prediction – Flight Delay",
     page_icon="✈",
@@ -26,23 +19,15 @@ st.set_page_config(
 
 show_navbar()
 
-# ── Design & Font ─────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* Inter Font von Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-/* Gesamte App auf Inter umstellen */
 html, body, [class*="css"], .stMarkdown, .stText, h1, h2, h3, p, div {
     font-family: 'Inter', sans-serif !important;
 }
-
-/* Titel grösser und schärfer */
 h1 { font-weight: 700 !important; letter-spacing: -0.02em !important; }
 h2 { font-weight: 600 !important; letter-spacing: -0.01em !important; }
 h3 { font-weight: 600 !important; }
-
-/* Labels über Inputs etwas heller und grösser */
 .stSelectbox label, .stDateInput label, .stSlider label {
     font-size: 0.8rem !important;
     font-weight: 500 !important;
@@ -50,25 +35,7 @@ h3 { font-weight: 600 !important; }
     text-transform: uppercase !important;
     opacity: 0.7 !important;
 }
-
-/* Trennlinien subtiler */
 hr { opacity: 0.15 !important; }
-
-/* Metriken schöner */
-[data-testid="metric-container"] {
-    background: rgba(255,255,255,0.04) !important;
-    border-radius: 10px !important;
-    padding: 0.75rem 1rem !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-}
-
-/* Weisser Text in allen Dropdown-Feldern */
-div[data-baseweb="select"] * { color: #ffffff !important; }
-li[role="option"] *, li[role="option"] { color: #ffffff !important; }
-div[data-baseweb="input"] * { color: #ffffff !important; }
-input { color: #ffffff !important; }
-div[data-baseweb="calendar"] *, div[data-baseweb="datepicker"] * { color: #ffffff !important; }
-div[data-baseweb="select"] svg path { fill: #ffffff !important; stroke: #ffffff !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -76,7 +43,6 @@ st.title("Prediction Tool")
 st.markdown("Enter your flight details to get a delay probability estimate.")
 st.markdown("---")
 
-# ── EINGABE-FORMULAR ──────────────────────────────────────────────────────────
 st.subheader("Your Flight Details")
 
 col1, col2 = st.columns(2, gap="large")
@@ -112,18 +78,14 @@ st.markdown("---")
 predict_btn = st.button("✈ Predict Delay", type="primary", use_container_width=True)
 
 if predict_btn:
-
-    # ── Wetterdaten laden ─────────────────────────────────────────────────────
-    with st.spinner("Loading weather data..."):
+    date_str = flight_date.strftime("%Y-%m-%d")
+    with st.spinner("Loading weather & running prediction..."):
         try:
-            date_str   = flight_date.strftime("%Y-%m-%d")
             weather_df = get_weather(origin_code, date_str)
         except Exception as e:
             st.error(f"Could not load weather data: {e}")
             st.stop()
 
-    # ── ML Vorhersage ─────────────────────────────────────────────────────────
-    with st.spinner("Running prediction model..."):
         result = predict_delay(
             airline     = airline_code,
             origin      = origin_code,
@@ -137,92 +99,81 @@ if predict_btn:
         st.error(result["error"])
         st.stop()
 
-    st.markdown("---")
-    st.subheader("Prediction Result")
-
     risk_color = result["risk_color"]
+    prob_pct   = result["delay_probability_pct"]
+    category   = result["display_category"]
     risk_level = result["risk_level"]
-
-    # ── HAUPTERGEBNIS BOX ─────────────────────────────────────────────────────
-    if result["display_mode"] == "low_risk":
-        # Unter 33% — kein Delay erwartet
-        st.markdown(f"""
-        <div style="
-            background: {risk_color};
-            border-radius: 12px;
-            padding: 2rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
-        ">
-            <div style="font-size:0.75rem; color:rgba(255,255,255,0.85);
-                        letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.5rem;">
-                Delay Risk — {risk_level}
-            </div>
-            <div style="font-size:3rem; font-weight:700; color:#ffffff; line-height:1.1;">
-                No Delay
-            </div>
-            <div style="font-size:1rem; color:rgba(255,255,255,0.9); margin-top:0.75rem;">
-                Only <strong style="color:#ffffff">{result["delay_probability_pct"]}</strong> probability of any delay
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    else:
-        # Über 33% — wahrscheinlichste Delay-Kategorie anzeigen
-        st.markdown(f"""
-        <div style="
-            background: {risk_color};
-            border-radius: 12px;
-            padding: 2rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
-        ">
-            <div style="font-size:0.75rem; color:rgba(255,255,255,0.85);
-                        letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.5rem;">
-                Delay Risk — {risk_level}
-            </div>
-            <div style="font-size:3rem; font-weight:700; color:#ffffff; line-height:1.1;">
-                {result["display_category"]}
-            </div>
-            <div style="font-size:1rem; color:rgba(255,255,255,0.9); margin-top:0.75rem;">
-                {result["delay_probability_pct"]} probability of any delay
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # ── METRIKEN ──────────────────────────────────────────────────────────────
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Flight",    f"{airline_code} · {origin_code} → {dest_code}")
-    m2.metric("Departure", f"{flight_date.strftime('%b %d, %Y')} · {dep_hour:02d}:00")
-    m3.metric("Distance",  f"{result['distance_km']:,} km")
-
-    # ── WETTER ANZEIGEN ───────────────────────────────────────────────────────
-    st.markdown("---")
-    st.subheader(f"Weather at {origin_name} – {flight_date.strftime('%B %d, %Y')}")
-
-    # Wetter zur Abflugstunde
-    weather_at_hour = weather_df[weather_df["hour"] == dep_hour].iloc[0]
-    condition       = classify_weather_condition(weather_at_hour)
+    factors    = result["top_factors"]
 
     condition_icons = {
-        "Heavy Snow": "❄️ Heavy Snow", "Light Snow":  "🌨️ Light Snow",
-        "Heavy Rain": "🌧️ Heavy Rain", "Light Rain":  "🌦️ Light Rain",
-        "Strong Wind":"💨 Strong Wind", "Overcast":    "☁️ Overcast",
-        "Good":       "☀️ Good",
+        "Heavy Snow":  "❄️ Heavy Snow",
+        "Light Snow":  "🌨️ Light Snow",
+        "Heavy Rain":  "🌧️ Heavy Rain",
+        "Light Rain":  "🌦️ Light Rain",
+        "Strong Wind": "💨 Strong Wind",
+        "Overcast":    "☁️ Overcast",
+        "Good":        "☀️ Good",
     }
-    condition_label = condition_icons.get(condition, condition)
-    st.markdown(f"**Condition at {dep_hour:02d}:00:** {condition_label}")
-
-    w1, w2, w3, w4 = st.columns(4)
-    w1.metric("🌡️ Temperature", f"{weather_at_hour['temperature']} °C")
-    w2.metric("🌧️ Precipitation", f"{weather_at_hour['precipitation']} mm")
-    w3.metric("❄️ Snowfall", f"{weather_at_hour['snowfall']} cm")
-    w4.metric("💨 Wind Speed", f"{weather_at_hour['windspeed']} km/h")
 
     st.markdown("---")
 
-    # ── TAGESÜBERSICHT — nur bei echten stündlichen Daten anzeigen ────────────
-    # Wenn alle Temperaturwerte gleich sind = Tagesdurchschnitt → nicht anzeigen
+    # ── 1. THREE KPI CARDS ────────────────────────────────────────────────────
+    st.markdown(f"""
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;margin-bottom:2rem;">
+<div style="background:#ffffff;border:1px solid #e5e7eb;border-top:3px solid {risk_color};border-radius:0 0 12px 12px;padding:1.75rem 1.5rem;text-align:center;">
+<div style="font-size:0.65rem;color:#9ca3af;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.75rem;">Delay Probability</div>
+<div style="font-size:3rem;font-weight:700;color:{risk_color};line-height:1;margin-bottom:0.25rem;">{prob_pct}</div>
+<div style="font-size:0.8rem;color:#9ca3af;">chance of delay</div>
+</div>
+<div style="background:#ffffff;border:1px solid #e5e7eb;border-top:3px solid #6366F1;border-radius:0 0 12px 12px;padding:1.75rem 1.5rem;text-align:center;">
+<div style="font-size:0.65rem;color:#9ca3af;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.75rem;">Expected Delay</div>
+<div style="font-size:2rem;font-weight:700;color:#111111;line-height:1.2;margin-bottom:0.25rem;">{category}</div>
+<div style="font-size:0.8rem;color:#9ca3af;">most likely category</div>
+</div>
+<div style="background:#ffffff;border:1px solid #e5e7eb;border-top:3px solid {risk_color};border-radius:0 0 12px 12px;padding:1.75rem 1.5rem;text-align:center;">
+<div style="font-size:0.65rem;color:#9ca3af;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.75rem;">Risk Level</div>
+<div style="display:inline-block;background:{risk_color}20;color:{risk_color};font-weight:700;font-size:1.4rem;padding:0.35rem 1.25rem;border-radius:20px;margin-top:0.25rem;">{risk_level}</div>
+<div style="font-size:0.8rem;color:#9ca3af;margin-top:0.5rem;">{origin_code} → {dest_code}</div>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+    # ── 2. WEATHER AT DEPARTURE HOUR ──────────────────────────────────────────
+    weather_at_hour = weather_df[weather_df["hour"] == dep_hour].iloc[0]
+    condition       = classify_weather_condition(weather_at_hour)
+    condition_label = condition_icons.get(condition, condition)
+
+    st.markdown(f"""
+<div style="background:#f8f9fa;border:1px solid #e5e7eb;border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;">
+<div style="font-size:0.65rem;color:#9ca3af;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1rem;">Weather at Departure · {dep_hour:02d}:00</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem;">
+<div style="text-align:center;">
+<div style="font-size:1.5rem;">🌡️</div>
+<div style="font-size:0.7rem;color:#9ca3af;margin:0.25rem 0;">Temperature</div>
+<div style="font-weight:600;color:#111111;">{weather_at_hour['temperature']} °C</div>
+</div>
+<div style="text-align:center;">
+<div style="font-size:1.5rem;">🌧️</div>
+<div style="font-size:0.7rem;color:#9ca3af;margin:0.25rem 0;">Precipitation</div>
+<div style="font-weight:600;color:#111111;">{weather_at_hour['precipitation']} mm</div>
+</div>
+<div style="text-align:center;">
+<div style="font-size:1.5rem;">💨</div>
+<div style="font-size:0.7rem;color:#9ca3af;margin:0.25rem 0;">Wind Speed</div>
+<div style="font-weight:600;color:#111111;">{weather_at_hour['windspeed']} km/h</div>
+</div>
+<div style="text-align:center;">
+<div style="font-size:1.5rem;">☁️</div>
+<div style="font-size:0.7rem;color:#9ca3af;margin:0.25rem 0;">Condition</div>
+<div style="background:{risk_color}20;color:{risk_color};font-weight:600;font-size:0.8rem;padding:0.2rem 0.5rem;border-radius:10px;display:inline-block;">{condition_label}</div>
+</div>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # ── 3. FULL DAY WEATHER OVERVIEW ──────────────────────────────────────────
     is_daily_avg = weather_df["temperature"].nunique() == 1
 
     if not is_daily_avg:
@@ -259,46 +210,34 @@ if predict_btn:
     else:
         st.caption("📅 Weather based on historical daily average (same day, last 3 years) — hourly breakdown not available for dates beyond 16 days.")
 
-    # ── MODEL INFO + QUELLEN ──────────────────────────────────────────────────
     st.markdown("---")
 
-    col_a, col_b = st.columns(2, gap="large")
+    # ── 4. CONTRIBUTING FACTORS ───────────────────────────────────────────────
+    st.subheader("Contributing Factors")
 
-    with col_a:
-        st.markdown("**Model Input Variables**")
-        w = result["weather_used"]
+    if factors:
+        _impact_colors = {"high": "#EF4444", "medium": "#F59E0B", "low": "#10B981"}
+        _impact_labels = {"high": "high impact", "medium": "medium", "low": "low"}
+
+        cells = ""
+        for f in factors:
+            color = _impact_colors.get(f["impact"], "#9ca3af")
+            label = _impact_labels.get(f["impact"], f["impact"])
+            cells += f"""
+<div style="background:#f8f9fa;border:1px solid #e5e7eb;border-radius:10px;padding:0.85rem 1.1rem;display:flex;align-items:center;gap:0.75rem;">
+<div style="width:10px;height:10px;border-radius:50%;background:{color};flex-shrink:0;"></div>
+<div><span style="font-size:0.9rem;color:#111111;font-weight:500;">{f['label']}</span>
+<span style="font-size:0.78rem;color:#9ca3af;margin-left:0.4rem;">({label})</span></div>
+</div>"""
         st.markdown(f"""
-        | Variable | Value | Description |
-        |---|---|---|
-        | Month | {flight_date.month} | Month of departure |
-        | Day of Week | {flight_date.isoweekday()} | 1=Mon, 7=Sun |
-        | Departure Hour | {dep_hour}:00 | Scheduled departure time |
-        | Airline | {airline_code} | Airline code |
-        | Origin | {origin_code} | Departure airport |
-        | Destination | {dest_code} | Arrival airport |
-        | Distance | {result['distance_km']:,} km | Flight distance |
-        | Temperature | {w['TEMP']} °C | Temp at departure time |
-        | Precipitation | {w['PRCP_H']} mm | Rain at departure time |
-        | Snowfall | {w['SNOW_H']} cm | Snow at departure time |
-        | Wind | {round(w['WIND'], 1)} m/s | Wind at departure time |
-        | Cloud Cover | {w['CLOUD']} % | Clouds at departure time |
-        """)
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.5rem;">
+{cells}
+</div>
+""", unsafe_allow_html=True)
 
-    with col_b:
-        st.markdown("**Data Sources**")
-        st.markdown("""
-        | Source | Usage |
-        |---|---|
-        | [Kaggle – US Flight Delays 2015](https://www.kaggle.com/datasets/usdot/flight-delays) | Training data (5.8M flights) |
-        | [Open-Meteo Archive API](https://open-meteo.com) | Historical weather (training + past dates) |
-        | [Open-Meteo Forecast API](https://open-meteo.com) | Weather forecast (< 16 days) |
-
-        **Model**
-        | | |
-        |---|---|
-        | Algorithm | XGBoost |
-        | Training flights | 879,956 |
-        | Binary accuracy | 68.8% |
-        | Multiclass accuracy | 79.8% |
-        | Delay threshold | ≥ 15 minutes |
-        """)
+    w = result["weather_used"]
+    st.caption(
+        f"Model inputs: TEMP={w['TEMP']}°C · PRCP={w['PRCP_H']}mm · "
+        f"SNOW={w['SNOW_H']}cm · WIND={round(w['WIND'], 1)}m/s · CLOUD={w['CLOUD']}% · "
+        f"Trained on 2015 US flight data (XGBoost, 68.8% accuracy)"
+    )
