@@ -230,4 +230,3 @@ def get_destination_options(origin: str) -> dict:
         "Denver (DEN)":         "DEN",
     }
     return {name: code for name, code in all_airports.items() if code != origin}
-# updated
