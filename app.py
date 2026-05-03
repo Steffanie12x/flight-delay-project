@@ -121,7 +121,7 @@ st.markdown(f"""
         color: #ffffff;
     ">
         <div class="hero-label" style="font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; margin-bottom:0.75rem;">
-            ATL · ORD · JFK · LAX · DEN
+            ATL · BOS · DEN · DFW · DTW · EWR · IAH · JFK · LAS · LAX · MCO · MSP · ORD · PHX · SEA · SFO
         </div>
         <h1 style="font-size:3rem; font-weight:700; color:#ffffff; margin:0 0 0.75rem; line-height:1.1; letter-spacing:-0.02em;">
             Flight Delay
