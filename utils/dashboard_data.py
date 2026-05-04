@@ -53,6 +53,7 @@ def get_delay_by_airline() -> pd.DataFrame:
         "Skywest Airlines":        18.3,
         "Southwest Airlines":      19.6,
         "United Air Lines":        21.4,
+        "American Airlines":       22.8,
         "JetBlue Airways":         24.2,
         "American Eagle Airlines": 24.8,
         "Frontier Airlines":       27.1,
