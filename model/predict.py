@@ -188,15 +188,66 @@ def predict_delay(
     else:
         risk_level, risk_color = "High",   "#EF4444"
 
+    # ── TOP FACTORS generieren ────────────────────────────────────────────────
+    top_factors = []
+
+    # Abflugzeit — Rush hours vs. Off-peak
+    if 16 <= dep_hour <= 19:
+        top_factors.append({"label": f"Afternoon rush hour ({dep_hour:02d}:00)", "impact": "high"})
+    elif 7 <= dep_hour <= 9:
+        top_factors.append({"label": f"Morning rush hour ({dep_hour:02d}:00)", "impact": "medium"})
+    else:
+        top_factors.append({"label": f"Off-peak departure ({dep_hour:02d}:00)", "impact": "low"})
+
+    # Airline — basierend auf historischer Verspätungsrate
+    airline_name = AIRLINE_NAMES.get(airline, airline)
+    _HIGH_DELAY_AIRLINES = {"F9", "EV", "MQ", "NK"}   # >24% historische Verspätungsrate
+    _LOW_DELAY_AIRLINES  = {"DL", "AS", "HA"}          # <18% historische Verspätungsrate
+    if airline in _HIGH_DELAY_AIRLINES:
+        top_factors.append({"label": airline_name, "impact": "high"})
+    elif airline in _LOW_DELAY_AIRLINES:
+        top_factors.append({"label": airline_name, "impact": "low"})
+    else:
+        top_factors.append({"label": airline_name, "impact": "medium"})
+
+    # Monat / Saison — Sommer und Feiertage erhöhen Risiko
+    if month in [7, 12]:
+        top_factors.append({"label": "Peak travel season", "impact": "high"})
+    elif month in [6, 8, 11, 3]:
+        top_factors.append({"label": "Busy travel period", "impact": "medium"})
+    else:
+        top_factors.append({"label": "Off-peak season", "impact": "low"})
+
+    # Wetter (SNOW in mm, PRCP Tagessumme mm, AWND m/s, TMIN °C)
+    if weather["SNOW"] > 5 or weather["TMIN"] <= 0:
+        top_factors.append({"label": "Snow / Freezing conditions", "impact": "high"})
+    elif weather["PRCP"] > 10 or weather["AWND"] > 13.9:
+        top_factors.append({"label": "Heavy rain / Strong winds", "impact": "high"})
+    elif weather["PRCP"] > 2:
+        top_factors.append({"label": "Rain / Low visibility", "impact": "medium"})
+    else:
+        top_factors.append({"label": "Clear / Sunny conditions", "impact": "low"})
+
+    # Wochentag
+    weekdays = {1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday",
+                5: "Friday", 6: "Saturday", 7: "Sunday"}
+    weekday_name = weekdays.get(day_of_week, "")
+    if day_of_week in [1, 5]:   # Monday & Friday = busy travel days
+        top_factors.append({"label": f"{weekday_name} flight", "impact": "medium"})
+    else:
+        top_factors.append({"label": f"{weekday_name} flight", "impact": "low"})
+
     return {
         "delay_probability":     round(float(delay_prob), 3),
         "delay_probability_pct": f"{delay_prob:.0%}",
         "delay_category":        delay_category,
+        "display_category":      delay_category,
         "is_likely_delayed":     delay_prob >= 0.5,
         "risk_level":            risk_level,
         "risk_color":            risk_color,
         "weather_used":          weather,
         "distance_km":           distance_km,
+        "top_factors":           top_factors,
     }
 
 

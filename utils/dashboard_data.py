@@ -60,7 +60,6 @@ def get_delay_by_airline() -> pd.DataFrame:
         "American Eagle Airlines":   24.8,
         "Atlantic Southeast Airlines": 25.3,
         "Frontier Airlines":         27.1,
-        "Spirit Air Lines":          28.4,
     }
     df = pd.DataFrame(list(data.items()), columns=["airline", "delay_pct"])
     # Aufsteigend sortieren damit die pünktlichste Airline oben im Chart steht
