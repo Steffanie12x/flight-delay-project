@@ -47,19 +47,15 @@ def get_delay_by_airline() -> pd.DataFrame:
     unpünktlichster Airline. Alle Airlines im Trainingsdatensatz enthalten.
     """
     data = {
-        "Hawaiian Airlines":          9.2,
-        "Alaska Airlines":           14.8,
-        "Delta Air Lines":           17.1,
-        "SkyWest Airlines":          18.3,
-        "Southwest Airlines":        19.6,
-        "United Air Lines":          21.4,
-        "American Airlines":         22.8,
-        "US Airways":                23.1,
-        "Virgin America":            23.5,
-        "JetBlue Airways":           24.2,
-        "American Eagle Airlines":   24.8,
-        "Atlantic Southeast Airlines": 25.3,
-        "Frontier Airlines":         27.1,
+        "Hawaiian Airlines":        9.2,
+        "Alaska Airlines":         14.8,
+        "Delta Air Lines":         17.1,
+        "Skywest Airlines":        18.3,
+        "Southwest Airlines":      19.6,
+        "United Air Lines":        21.4,
+        "JetBlue Airways":         24.2,
+        "American Eagle Airlines": 24.8,
+        "Frontier Airlines":       27.1,
     }
     df = pd.DataFrame(list(data.items()), columns=["airline", "delay_pct"])
     # Aufsteigend sortieren damit die pünktlichste Airline oben im Chart steht
