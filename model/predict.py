@@ -80,24 +80,16 @@ _binary_model, _multi_model, _encoders, _feature_list = load_models()
 # 2. WETTER KONVERTIEREN
 # ─────────────────────────────────────────────
 
-def _convert_weather(weather_df: pd.DataFrame) -> dict:
-    """
-    Konvertiert stündliche Wetterdaten (aus utils/weather.py)
-    in Tageswerte die das ML-Modell erwartet.
-
-    Das Modell wurde mit NOAA Tageswerten trainiert:
-    - PRCP: Tagesniederschlag (mm)
-    - SNOW: Schnee (mm) — konvertiert von cm
-    - TMAX: Höchsttemperatur des Tages (°C)
-    - TMIN: Tiefsttemperatur des Tages (°C)
-    - AWND: Max. Windgeschwindigkeit (m/s) — konvertiert von km/h
-    """
+def _get_weather_at_hour(weather_df: pd.DataFrame, dep_hour: int) -> dict:
+    """Extrahiert Wetterwerte zur Abflugstunde — passend zu den Trainings-Features."""
+    row = weather_df[weather_df["hour"] == dep_hour]
+    row = row.iloc[0] if not row.empty else weather_df.iloc[0]
     return {
-        "PRCP": round(float(weather_df["precipitation"].sum()), 1),
-        "SNOW": round(float(weather_df["snowfall"].sum() * 10), 1),  # cm → mm
-        "TMAX": round(float(weather_df["temperature"].max()), 1),
-        "TMIN": round(float(weather_df["temperature"].min()), 1),
-        "AWND": round(float(weather_df["windspeed"].max() / 3.6), 1),  # km/h → m/s
+        "TEMP":   round(float(row["temperature"] or 20.0), 1),
+        "PRCP_H": round(float(row["precipitation"] or 0.0), 1),
+        "SNOW_H": round(float(row["snowfall"] or 0.0), 1),
+        "WIND":   round(float(row["windspeed"] / 3.6 if row["windspeed"] else 5.0), 1),
+        "CLOUD":  round(float(row["cloudcover"] or 50.0), 1),
     }
 
 
@@ -139,13 +131,13 @@ def predict_delay(
     month       = dt.month
     day_of_week = dt.isoweekday()   # 1=Montag, 7=Sonntag
 
-    # ── Stündliche Wetterdaten zu Tageswerten konvertieren
-    weather = _convert_weather(weather_df)
+    # ── Wetterdaten zur Abflugstunde extrahieren (passend zu Trainings-Features)
+    weather = _get_weather_at_hour(weather_df, dep_hour)
 
     # ── Distanz bestimmen
     distance_km = DISTANCES.get((origin, destination), 2500)
 
-    # ── Feature-Vektor aufbauen
+    # ── Feature-Vektor aufbauen (exakt wie beim Training)
     input_data = {
         "MONTH":               month,
         "DAY_OF_WEEK":         day_of_week,
@@ -154,11 +146,11 @@ def predict_delay(
         "ORIGIN_AIRPORT":      origin,
         "DESTINATION_AIRPORT": destination,
         "DISTANCE_KM":         distance_km,
-        "PRCP":                weather["PRCP"],
-        "SNOW":                weather["SNOW"],
-        "TMAX":                weather["TMAX"],
-        "TMIN":                weather["TMIN"],
-        "AWND":                weather["AWND"],
+        "TEMP":                weather["TEMP"],
+        "PRCP_H":              weather["PRCP_H"],
+        "SNOW_H":              weather["SNOW_H"],
+        "WIND":                weather["WIND"],
+        "CLOUD":               weather["CLOUD"],
     }
 
     df = pd.DataFrame([input_data])
@@ -218,12 +210,12 @@ def predict_delay(
     else:
         top_factors.append({"label": "Off-peak season", "impact": "low"})
 
-    # Wetter (SNOW in mm, PRCP Tagessumme mm, AWND m/s, TMIN °C)
-    if weather["SNOW"] > 5 or weather["TMIN"] <= 0:
+    # Wetter (stündliche Werte zur Abflugzeit)
+    if weather["SNOW_H"] > 0.5 or weather["TEMP"] <= 0:
         top_factors.append({"label": "Snow / Freezing conditions", "impact": "high"})
-    elif weather["PRCP"] > 10 or weather["AWND"] > 13.9:
+    elif weather["PRCP_H"] > 2.0 or weather["WIND"] > 13.9:
         top_factors.append({"label": "Heavy rain / Strong winds", "impact": "high"})
-    elif weather["PRCP"] > 2:
+    elif weather["PRCP_H"] > 0.3 or weather["CLOUD"] > 85:
         top_factors.append({"label": "Rain / Low visibility", "impact": "medium"})
     else:
         top_factors.append({"label": "Clear / Sunny conditions", "impact": "low"})
