@@ -340,4 +340,4 @@ if predict_btn:
         st.markdown(f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.5rem;">{cells}</div>', unsafe_allow_html=True)
 
     w = result["weather_used"]
-    st.caption(f"Model inputs: TEMP={w['TEMP']}°C · PRCP={w['PRCP_H']}mm · SNOW={w['SNOW_H']}cm · WIND={round(w['WIND'],1)}m/s · CLOUD={w['CLOUD']}% · Trained on 2015 US flight data (XGBoost, 66.8% accuracy)")
+    st.caption(f"Model inputs: TMAX={w['TMAX']}°C · TMIN={w['TMIN']}°C · PRCP={w['PRCP']}mm · SNOW={w['SNOW']}mm · WIND={round(w['AWND'],1)}m/s · Trained on 2015 US flight data (XGBoost, 66.8% accuracy)")
