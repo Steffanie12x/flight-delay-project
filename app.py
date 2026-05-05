@@ -11,7 +11,7 @@ from utils.dashboard_data import get_delay_by_hour, get_delay_by_weekday, get_de
 # ── Seitenkonfiguration ───────────────────────────────────────────────────────
 # Setzt Titel, Icon, Layout und Sidebar-Status der App
 st.set_page_config(
-    page_title="Flight Delay – USA",
+    page_title="CatchYourFlight – USA",
     page_icon="✈",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -124,7 +124,7 @@ st.markdown(f"""
             ATL · BOS · DEN · DFW · DTW · EWR · IAH · JFK · LAS · LAX · MCO · MSP · ORD · PHX · SEA · SFO
         </div>
         <h1 style="font-size:3rem; font-weight:700; color:#ffffff; margin:0 0 0.75rem; line-height:1.1; letter-spacing:-0.02em;">
-            Flight Delay
+            CatchYourFlight
         </h1>
         <p style="color:#ffffff; font-size:1rem; margin:0 0 1.5rem; max-width:480px; line-height:1.6;">
             Analyze delay patterns from the 16 busiest US airports — by airline, time and destination.
