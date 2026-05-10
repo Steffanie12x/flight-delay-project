@@ -115,7 +115,7 @@ if predict_btn:
     # Hauptergebnis: grosse farbige Box
     risk_color = result["risk_color"]
     prob_pct   = result["delay_probability_pct"]
-    category   = result["delay_category"]
+    category   = result["display_category"]
     risk_level = result["risk_level"]
 
     st.markdown(f"""
