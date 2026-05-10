@@ -39,7 +39,7 @@ COLOR_GRID = "#f0f0f0"   # Hellgrau für Gitternetz
 
 # ── CHART 1: VERSPÄTUNGEN NACH TAGESZEIT (Liniendiagramm) ─────────────────────
 st.subheader("Delays by Time of Day")
-st.caption("Share of flights delayed > 15 min per departure hour — delays accumulate over the day.")
+st.caption("On average delays accumulate over the course of the day.")
 
 # Stundenbeschriftungen für X-Achse (z.B. "06:00")
 hour_labels = [f"{h:02d}:00" for h in df_hour["hour"]]
@@ -89,7 +89,7 @@ st.markdown("---")
 
 # ── CHART 2: VERSPÄTUNGEN NACH WOCHENTAG (Balkendiagramm) ─────────────────────
 st.subheader("Delays by Day of Week")
-st.caption("Friday has the highest delay rate — busiest travel day with cumulative delays.")
+st.caption("Friday usually is the day with biggest cumulated delay.")
 
 # Farben: Freitag rot hervorheben, alle anderen lila
 bar_colors_weekday = [
@@ -138,7 +138,7 @@ st.markdown("---")
 
 # ── CHART 3: VERSPÄTUNGEN NACH AIRLINE (horizontales Balkendiagramm) ──────────
 st.subheader("Delays by Airline")
-st.caption("Hawaiian Airlines is most punctual — Frontier Airlines has the highest delay rate.")
+st.caption("Sorted from most to least punctual - Hawaiian Airlines has the least delay of all.")
 
 # Farben je nach Verspätungsrate: grün (gut) → gelb → rot (schlecht)
 def airline_color(pct: float) -> str:
