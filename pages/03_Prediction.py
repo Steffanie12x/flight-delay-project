@@ -39,7 +39,7 @@ h3 { font-weight: 600 !important; }
 }
 hr { opacity: 0.15 !important; }
 /* Streamlit's automatischen "200MB per file" Text verstecken */
-[data-testid="stFileUploaderDropzoneInstructions"] small { display: none !important; }
+[data-testid="stFileUploaderDropzoneInstructions"] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
