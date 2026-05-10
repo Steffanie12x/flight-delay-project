@@ -257,6 +257,25 @@ Look carefully at all text on the boarding pass. Flight numbers, gate info, and 
                 # Fehlerbehandlung: User kann manuell eingeben
                 st.warning(f"Could not scan boarding pass automatically: {e}. Please fill in the details manually.")
 
+@st.dialog("About Us")
+def show_about():
+    st.markdown("""
+    **CatchYourFlight** is a student project developed at the University of St. Gallen.
+
+    Our goal is to help travelers make smarter booking decisions by deriving historical flight delay data from the 16 busiest US airports.
+
+    ---
+    **Team**
+    - Data Research · Nils Wälti
+    - Machine Learning · Benjamin Marbacher & Silas Marty
+    - Meteo API · Stefanie Seiler
+    - Website Design · Sára Jankovičová
+
+    ---
+    **Data Source**
+    Historical flight data from 16 US airports (ATL, BOS, DEN, DFW, DTW, EWR, IAH, JFK, LAS, LAX, MCO, MSP, ORD, PHX, SEA, SFO) sourced from the Bureau of Transportation Statistics (BTS). Weather data via Open-Meteo API.
+    """)
+
 # ── PREDICT BUTTON ────────────────────────────────────────────────────────────
 st.markdown("---")
 predict_btn = st.button("✈ Predict Delay", type="primary", use_container_width=True)
@@ -417,3 +436,18 @@ if predict_btn:
 
     w = result["weather_used"]
     st.caption(f"Model inputs: TEMP={w['TEMP']}°C · PRCP={w['PRCP_H']}mm · SNOW={w['SNOW_H']}cm · WIND={round(w['WIND'],1)}m/s · CLOUD={w['CLOUD']}% · Trained on 2015 US flight data (XGBoost, 66.8% accuracy)")
+
+# ── About Us Button ───────────────────────────────────────────────────────────
+st.markdown("<br>", unsafe_allow_html=True)
+_, btn_col, _ = st.columns([3, 1, 3])
+with btn_col:
+    if st.button("About Us", use_container_width=True):
+        show_about()
+
+# ── Footer ────────────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="border-top:1px solid #e0e0e0; padding-top:1rem; text-align:center;
+    color:#aaaaaa; font-size:0.72rem;">
+    Computer Science Project · University of St. Gallen · CatchYourFlight · 2026
+</div>
+""", unsafe_allow_html=True)
