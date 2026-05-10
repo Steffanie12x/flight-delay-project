@@ -175,13 +175,15 @@ def predict_delay(airline, origin, destination, flight_date, dep_hour, weather_d
 
     top_factors = []
 
-    # Abflugzeit: basiert auf dem Tagesverlauf (morgens wenig, abends viel Delay)
-    if dep_hour >= 18:
-        top_factors.append({"label": f"Evening departure ({dep_hour:02d}:00)", "impact": "high"})
-    elif dep_hour >= 12:
-        top_factors.append({"label": f"Afternoon departure ({dep_hour:02d}:00)", "impact": "medium"})
+    # Abflugzeit: 03:00–08:00 ist am sichersten (LOW)
+    # Späte Nacht (00:00–02:00) ist MEDIUM wegen akkumulierter Delays vom Vortag
+    # Ab 15:00 steigt die Rate stark (43–59%) → HIGH
+    if dep_hour >= 15:
+        top_factors.append({"label": f"Late departure ({dep_hour:02d}:00)", "impact": "high"})
+    elif 3 <= dep_hour < 9:
+        top_factors.append({"label": f"Early departure ({dep_hour:02d}:00)", "impact": "low"})
     else:
-        top_factors.append({"label": f"Morning departure ({dep_hour:02d}:00)", "impact": "low"})
+        top_factors.append({"label": f"Midday departure ({dep_hour:02d}:00)", "impact": "medium"})
 
     # Airline: basiert auf historischer Verspätungsrate der Airline
     # < 16% = low, 16–22% = medium, > 22% = high
@@ -192,31 +194,37 @@ def predict_delay(airline, origin, destination, flight_date, dep_hour, weather_d
         "impact": airline_impact
     })
 
-    # Saison: Winter erhöht Verspätungen stark, Sommer moderat
-    if month in [12, 1, 2]:
-        top_factors.append({"label": "Winter season", "impact": "high"})
-    elif month in [6, 7, 8]:
-        top_factors.append({"label": "Summer season", "impact": "medium"})
+    # Saison: Jun/Jul/Aug und Dez haben höchste Delay-Raten (42–45%)
+    # Jan/Feb sind überraschend niedrig (20–26%) — wenig Verkehr nach den Feiertagen
+    # Rest: medium (32–36%)
+    if month in [6, 7, 8]:
+        top_factors.append({"label": "Summer season (peak delays)", "impact": "high"})
+    elif month == 12:
+        top_factors.append({"label": "December (holidays + weather)", "impact": "high"})
+    elif month in [1, 2]:
+        top_factors.append({"label": "Post-holiday season (low traffic)", "impact": "low"})
     else:
-        top_factors.append({"label": "Off-peak season", "impact": "low"})
+        top_factors.append({"label": "Mid-season", "impact": "medium"})
 
-    # Wetter: basiert auf tatsächlichen Messwerten der Abflugstunde
+    # Wetter: Regen hat laut Modell starken Effekt (36% → 41% bei 1mm Regen → HIGH)
+    # Schnee zeigt im Modell überraschend wenig Effekt (Trainingsdaten-Limitation)
     if weather["SNOW_H"] > 0.5:
-        top_factors.append({"label": "Snow at departure", "impact": "high"})
-    elif weather["PRCP_H"] > 2.0:
-        top_factors.append({"label": "Heavy rain at departure", "impact": "high"})
+        top_factors.append({"label": "Snow at departure", "impact": "medium"})
+    elif weather["SNOW_H"] > 0:
+        top_factors.append({"label": "Light snow at departure", "impact": "medium"})
     elif weather["PRCP_H"] > 0.5:
+        top_factors.append({"label": "Rain at departure", "impact": "high"})
+    elif weather["PRCP_H"] > 0:
         top_factors.append({"label": "Light rain at departure", "impact": "medium"})
     else:
         top_factors.append({"label": "Favorable weather", "impact": "low"})
 
-    # Wochentag: basiert auf historischen Verspätungsraten pro Tag
-    # Freitag (24.7%) = high, Dienstag (18.2%) = low, Rest = medium
+    # Wochentag: Modell zeigt Montag als höchsten (40%), Samstag als niedrigsten (34%)
     weekdays = {1:"Monday", 2:"Tuesday", 3:"Wednesday", 4:"Thursday",
                 5:"Friday", 6:"Saturday", 7:"Sunday"}
-    if day_of_week == 5:                        # Freitag: höchste Verspätungsrate
+    if day_of_week == 1:                        # Montag: höchste Delay-Rate laut Modell
         dow_impact = "high"
-    elif day_of_week == 2:                      # Dienstag: niedrigste Verspätungsrate
+    elif day_of_week == 6:                      # Samstag: niedrigste Delay-Rate
         dow_impact = "low"
     else:                                       # Alle anderen Tage: mittel
         dow_impact = "medium"
