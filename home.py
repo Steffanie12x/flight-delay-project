@@ -329,6 +329,6 @@ with btn_col:
 st.markdown("""
 <div style="border-top:1px solid #e0e0e0; padding-top:1rem; text-align:center;
     color:#aaaaaa; font-size:0.72rem;">
-    Computer Science Project · University of St. Gallen · CatchYourFlight · 2026 · Source: BTS 2015
+    Computer Science Project · University of St. Gallen · CatchYourFlight · 2026
 </div>
 """, unsafe_allow_html=True)
