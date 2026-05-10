@@ -17,6 +17,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+st.markdown("<style>[data-testid='stSidebar'],[data-testid='collapsedControl']{display:none!important}</style>", unsafe_allow_html=True)
+
 # ── Navbar anzeigen ───────────────────────────────────────────────────────────
 # Zeigt die Navigationsleiste mit Flight Delay · ZRH und den Seiten-Links
 show_navbar()
