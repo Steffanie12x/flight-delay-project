@@ -111,7 +111,7 @@ def show_navbar():
         )
     with nav1:
         # Dashboard verlinkt auf die Startseite (app.py) mit Hero und Charts
-        st.page_link("app.py", label="Dashboard")
+        st.page_link("home.py", label="Dashboard")
     with nav2:
         st.page_link("pages/03_Prediction.py", label="Prediction")
 
