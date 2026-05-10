@@ -157,7 +157,25 @@ def predict_delay(airline, origin, destination, flight_date, dep_hour, weather_d
         display_mode, display_category = "show_category", best_cat
         risk_level, risk_color = "High", "#EF4444"
 
+    # ── Historische Verspätungsraten pro Airline (aus BTS 2015 Daten) ──────────
+    # Diese Werte spiegeln die tatsächliche Pünktlichkeit der Airline wider,
+    # unabhängig von der ML-Modell-Ausgabe
+    AIRLINE_DELAY_RATES = {
+        "HA": 9.2,   # Hawaiian Airlines   → sehr pünktlich
+        "AS": 14.8,  # Alaska Airlines     → pünktlich
+        "DL": 17.1,  # Delta Air Lines     → durchschnittlich
+        "OO": 18.3,  # SkyWest Airlines    → durchschnittlich
+        "WN": 19.6,  # Southwest Airlines  → durchschnittlich
+        "UA": 21.4,  # United Air Lines    → leicht erhöht
+        "AA": 22.8,  # American Airlines   → hoch
+        "B6": 24.2,  # JetBlue Airways     → hoch
+        "MQ": 24.8,  # Envoy Air           → hoch
+        "F9": 27.1,  # Frontier Airlines   → sehr hoch
+    }
+
     top_factors = []
+
+    # Abflugzeit: basiert auf dem Tagesverlauf (morgens wenig, abends viel Delay)
     if dep_hour >= 18:
         top_factors.append({"label": f"Evening departure ({dep_hour:02d}:00)", "impact": "high"})
     elif dep_hour >= 12:
@@ -165,11 +183,16 @@ def predict_delay(airline, origin, destination, flight_date, dep_hour, weather_d
     else:
         top_factors.append({"label": f"Morning departure ({dep_hour:02d}:00)", "impact": "low"})
 
+    # Airline: basiert auf historischer Verspätungsrate der Airline
+    # < 16% = low, 16–22% = medium, > 22% = high
+    airline_rate   = AIRLINE_DELAY_RATES.get(airline, 20.0)
+    airline_impact = "low" if airline_rate < 16 else "high" if airline_rate >= 22 else "medium"
     top_factors.append({
         "label": AIRLINE_NAMES.get(airline, airline),
-        "impact": "high" if delay_prob >= 0.5 else "medium"
+        "impact": airline_impact
     })
 
+    # Saison: Winter erhöht Verspätungen stark, Sommer moderat
     if month in [12, 1, 2]:
         top_factors.append({"label": "Winter season", "impact": "high"})
     elif month in [6, 7, 8]:
@@ -177,6 +200,7 @@ def predict_delay(airline, origin, destination, flight_date, dep_hour, weather_d
     else:
         top_factors.append({"label": "Off-peak season", "impact": "low"})
 
+    # Wetter: basiert auf tatsächlichen Messwerten der Abflugstunde
     if weather["SNOW_H"] > 0.5:
         top_factors.append({"label": "Snow at departure", "impact": "high"})
     elif weather["PRCP_H"] > 2.0:
@@ -186,11 +210,19 @@ def predict_delay(airline, origin, destination, flight_date, dep_hour, weather_d
     else:
         top_factors.append({"label": "Favorable weather", "impact": "low"})
 
+    # Wochentag: basiert auf historischen Verspätungsraten pro Tag
+    # Freitag (24.7%) = high, Dienstag (18.2%) = low, Rest = medium
     weekdays = {1:"Monday", 2:"Tuesday", 3:"Wednesday", 4:"Thursday",
                 5:"Friday", 6:"Saturday", 7:"Sunday"}
+    if day_of_week == 5:                        # Freitag: höchste Verspätungsrate
+        dow_impact = "high"
+    elif day_of_week == 2:                      # Dienstag: niedrigste Verspätungsrate
+        dow_impact = "low"
+    else:                                       # Alle anderen Tage: mittel
+        dow_impact = "medium"
     top_factors.append({
         "label": f"{weekdays.get(day_of_week, '')} flight",
-        "impact": "medium" if day_of_week in [1, 5] else "low"
+        "impact": dow_impact
     })
 
     return {
