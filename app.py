@@ -181,7 +181,7 @@ st.markdown("""
 def show_about():
     # Informationen über das Projektteam und das Projekt
     st.markdown("""
-    **Flight Delay USA** is a student project developed at the University of St. Gallen.
+    **CatchYourFlight** is a student project developed at the University of St. Gallen.
 
     Our goal is to make flight delay data from the 16 busiest US airports accessible and understandable —
     helping travelers make smarter booking decisions.
