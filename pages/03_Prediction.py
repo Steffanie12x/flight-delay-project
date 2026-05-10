@@ -38,6 +38,8 @@ h3 { font-weight: 600 !important; }
     opacity: 0.7 !important;
 }
 hr { opacity: 0.15 !important; }
+/* Streamlit's automatischen "200MB per file" Text verstecken */
+[data-testid="stFileUploaderDropzoneInstructions"] small { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -142,7 +144,7 @@ if st.session_state.bp_scanned:
 else:
     # Datei-Upload Widget (nur sichtbar wenn noch nicht gescannt)
     uploaded_file = st.file_uploader(
-        "📎 Drop your boarding pass here (photo or PDF) — we'll fill in the details automatically",
+        "📎 Drop your boarding pass here (photo or PDF, max. 5MB) — we'll fill in the details automatically",
         type=["png", "jpg", "jpeg", "pdf"],
         label_visibility="visible",
     )
@@ -152,10 +154,29 @@ else:
             try:
                 import anthropic
                 import base64
+                from PIL import Image
+                import io
 
                 file_bytes = uploaded_file.read()
-                b64        = base64.standard_b64encode(file_bytes).decode("utf-8")
                 media_type = "application/pdf" if uploaded_file.type == "application/pdf" else uploaded_file.type
+
+                # Bilder über 4MB werden komprimiert bevor sie an die Claude API geschickt werden
+                # (API-Limit: 5MB — Streamlit erlaubt bis 200MB, daher brauchen wir diese Zwischenstufe)
+                if media_type != "application/pdf" and len(file_bytes) > 4 * 1024 * 1024:
+                    img = Image.open(io.BytesIO(file_bytes))
+                    img = img.convert("RGB")           # PNG mit Transparenz → JPEG-kompatibel
+                    buffer = io.BytesIO()
+                    quality = 85
+                    img.save(buffer, format="JPEG", quality=quality)
+                    # Falls immer noch zu gross: Qualität weiter reduzieren
+                    while buffer.tell() > 4 * 1024 * 1024 and quality > 30:
+                        buffer = io.BytesIO()
+                        quality -= 15
+                        img.save(buffer, format="JPEG", quality=quality)
+                    file_bytes = buffer.getvalue()
+                    media_type = "image/jpeg"
+
+                b64 = base64.standard_b64encode(file_bytes).decode("utf-8")
 
                 client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
 
