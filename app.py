@@ -148,7 +148,7 @@ st.markdown("""
     line-height: 1.7;
     border-radius: 0 8px 8px 0;
 ">
-    <em>When planning a trip everybody crosses the issue of planning the right amount of time at the airport — neither too much nor too less. CatchYourFlight solves this problem by estimating the delay probability for your specific flight from the 16 busiest US airports by deriving historical delay patterns.</em>
+    <em>When planning a trip everybody crosses the issue of planning the right amount of time at the airport. CatchYourFlight solves this problem by estimating the delay probability for your specific flight from the 16 busiest US airports by deriving historical delay patterns.</em>
 </div>
 """, unsafe_allow_html=True)
 
