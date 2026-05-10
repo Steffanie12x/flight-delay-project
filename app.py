@@ -256,7 +256,7 @@ st.markdown("---")
 
 # ── Chart 2: Verspätungen nach Wochentag ──────────────────────────────────────
 st.subheader("Delays by Day of Week")
-st.caption("Friday usually is the day with biggest cumulated delay.")
+st.caption("Friday usually is the day with the biggest cumulated delay.")
 
 # Freitag rot hervorheben, alle anderen lila
 bar_colors_weekday = ["#EF4444" if d == "Fri" else COLOR_BAR for d in df_weekday["day"]]

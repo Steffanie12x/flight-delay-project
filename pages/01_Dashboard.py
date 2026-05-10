@@ -89,7 +89,7 @@ st.markdown("---")
 
 # ── CHART 2: VERSPÄTUNGEN NACH WOCHENTAG (Balkendiagramm) ─────────────────────
 st.subheader("Delays by Day of Week")
-st.caption("Friday usually is the day with biggest cumulated delay.")
+st.caption("Friday usually is the day with the biggest cumulated delay.")
 
 # Farben: Freitag rot hervorheben, alle anderen lila
 bar_colors_weekday = [
