@@ -10,7 +10,7 @@ from utils.dashboard_data import (
 
 # ── Seitenkonfiguration ───────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Dashboard – Flight Delay USA",
+    page_title="Dashboard – CatchYourFlight",
     page_icon="✈",
     layout="wide",
     initial_sidebar_state="collapsed",

@@ -13,7 +13,7 @@ from model.predict import predict_delay, get_airline_options, get_destination_op
 
 # ── Seitenkonfiguration ───────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Prediction – Flight Delay",
+    page_title="Prediction – CatchYourFlight",
     page_icon="✈",
     layout="wide",
     initial_sidebar_state="collapsed",

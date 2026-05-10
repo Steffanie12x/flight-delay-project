@@ -104,7 +104,7 @@ def show_navbar():
         st.markdown(
             f"<div style='display:flex; align-items:center; gap:0; padding-top:0.4rem;'>"
             f"<img src='data:image/png;base64,{_logo_b64}' style='height:3rem; width:auto;'/>"
-            f"<span style='font-size:2rem; font-weight:800;'>Flight Delay</span>"
+            f"<span style='font-size:2rem; font-weight:800; font-family:Helvetica Neue, Helvetica, Arial, sans-serif;'>CatchYourFlight</span>"
             f"<span style='color:#6B7280; font-weight:400; font-size:1.5rem; margin:0 0.35rem;'>·</span>"
             f"<span style='color:#6B7280; font-weight:400; font-size:1.5rem;'>USA</span></div>",
             unsafe_allow_html=True

@@ -11,7 +11,7 @@ from utils.dashboard_data import get_delay_by_hour, get_delay_by_weekday, get_de
 # ── Seitenkonfiguration ───────────────────────────────────────────────────────
 # Setzt Titel, Icon, Layout und Sidebar-Status der App
 st.set_page_config(
-    page_title="Flight Delay – USA",
+    page_title="CatchYourFlight – USA",
     page_icon="✈",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -29,7 +29,7 @@ st.markdown("""
     color: #ffffff !important;
 }
 .hero-text .hero-label {
-    color: #60A5FA !important;
+    color: #ffffff !important;
 }
 
 /* Dialog-Fenster: weißer Hintergrund, schwarze Schrift */
@@ -124,10 +124,10 @@ st.markdown(f"""
             ATL · BOS · DEN · DFW · DTW · EWR · IAH · JFK · LAS · LAX · MCO · MSP · ORD · PHX · SEA · SFO
         </div>
         <h1 style="font-size:3rem; font-weight:700; color:#ffffff; margin:0 0 0.75rem; line-height:1.1; letter-spacing:-0.02em;">
-            Flight Delay
+            CatchYourFlight
         </h1>
         <p style="color:#ffffff; font-size:1rem; margin:0 0 1.5rem; max-width:480px; line-height:1.6;">
-            Analyze delay patterns from the 16 busiest US airports — by airline, time and destination.
+            Analyze delay patterns from the 16 busiest US airports — by airline, departure time and airports.
         </p>
     </div>
 </div>
@@ -146,9 +146,7 @@ st.markdown("""
     line-height: 1.7;
     border-radius: 0 8px 8px 0;
 ">
-    <em>„Passengers often do not know how risky a planned flight is in terms of delays.
-    Our website helps them understand historical delay patterns and estimates the delay
-    probability for a specific flight from one of the 16 busiest US airports."</em>
+    <em>When planning a trip everybody crosses the issue of planning the right amount of time at the airport — neither too much nor too less. CatchYourFlight solves this problem by estimating the delay probability for your specific flight from the 16 busiest US airports by deriving historical delay patterns.</em>
 </div>
 """, unsafe_allow_html=True)
 
@@ -167,8 +165,8 @@ st.markdown("""
     </div>
     <div style="color:#333333; font-size:0.9rem; line-height:2.1;">
         ✈ &nbsp; The Friday afternoon flight from JFK is often delayed — consider booking a different time.<br>
-        ▸ &nbsp; Got a connecting flight? Check the risk and plan enough buffer time.<br>
-        ▸ &nbsp; Which airline is the most reliable on your route?
+        ✈ &nbsp; Got a connecting flight? Check the risk and plan enough buffer time.<br>
+        ✈ &nbsp; Which airline is the most reliable on your route?
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -181,7 +179,7 @@ st.markdown("""
 def show_about():
     # Informationen über das Projektteam und das Projekt
     st.markdown("""
-    **Flight Delay USA** is a student project developed at the University of St. Gallen.
+    **CatchYourFlight** is a student project developed at the University of St. Gallen.
 
     Our goal is to make flight delay data from the 16 busiest US airports accessible and understandable —
     helping travelers make smarter booking decisions.
