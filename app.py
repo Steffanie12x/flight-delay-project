@@ -29,7 +29,7 @@ st.markdown("""
     color: #ffffff !important;
 }
 .hero-text .hero-label {
-    color: #60A5FA !important;
+    color: #ffffff !important;
 }
 
 /* Dialog-Fenster: weißer Hintergrund, schwarze Schrift */
