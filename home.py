@@ -183,8 +183,7 @@ def show_about():
     st.markdown("""
     **CatchYourFlight** is a student project developed at the University of St. Gallen.
 
-    Our goal is to make flight delay data from the 16 busiest US airports accessible and understandable —
-    helping travelers make smarter booking decisions.
+    Our goal is to help travelers make smarter booking decisions by deriving historical flight delay data from the 16 busiest US airports.
 
     ---
     **Team**
