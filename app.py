@@ -127,7 +127,7 @@ st.markdown(f"""
             CatchYourFlight
         </h1>
         <p style="color:#ffffff; font-size:1rem; margin:0 0 1.5rem; max-width:480px; line-height:1.6;">
-            Analyze delay patterns from the 16 busiest US airports — by airline, time and destination.
+            Analyze delay patterns from the 16 busiest US airports — by airline, departure time and airports.
         </p>
     </div>
 </div>
