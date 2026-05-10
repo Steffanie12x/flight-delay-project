@@ -221,7 +221,7 @@ LAYOUT_BASE = dict(
 
 # ── Chart 1: Verspätungen nach Tageszeit ──────────────────────────────────────
 st.subheader("Delays by Time of Day")
-st.caption("Share of flights delayed > 15 min — delays accumulate over the course of the day.")
+st.caption("On average delays accumulate over the course of the day.")
 
 # Stundenbeschriftungen für die X-Achse
 hour_labels = [f"{h:02d}:00" for h in df_hour["hour"]]
@@ -256,7 +256,7 @@ st.markdown("---")
 
 # ── Chart 2: Verspätungen nach Wochentag ──────────────────────────────────────
 st.subheader("Delays by Day of Week")
-st.caption("Friday has the highest delay rate — busiest travel day with cumulative delays.")
+st.caption("Friday usually is the day with biggest cumulated delay.")
 
 # Freitag rot hervorheben, alle anderen lila
 bar_colors_weekday = ["#EF4444" if d == "Fri" else COLOR_BAR for d in df_weekday["day"]]
@@ -286,7 +286,7 @@ st.markdown("---")
 
 # ── Chart 3: Verspätungen nach Airline ────────────────────────────────────────
 st.subheader("Delays by Airline")
-st.caption("Sorted from most to least punctual — green < 16%, yellow 16–22%, red > 22%.")
+st.caption("Sorted from most to least punctual - Hawaiian Airlines has the least delay of all.")
 
 # Farbe je nach Verspätungsrate: grün → gelb → rot
 def airline_color(pct):
