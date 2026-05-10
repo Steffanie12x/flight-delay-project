@@ -146,9 +146,7 @@ st.markdown("""
     line-height: 1.7;
     border-radius: 0 8px 8px 0;
 ">
-    <em>„Passengers often do not know how risky a planned flight is in terms of delays.
-    Our website helps them understand historical delay patterns and estimates the delay
-    probability for a specific flight from one of the 16 busiest US airports."</em>
+    <em>When planning a trip everybody crosses the issue of planning the right amount of time at the airport — neither too much nor too less. CatchYourFlight solves this problem by estimating the delay probability for your specific flight from the 16 busiest US airports by deriving historical delay patterns.</em>
 </div>
 """, unsafe_allow_html=True)
 
