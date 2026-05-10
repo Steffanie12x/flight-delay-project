@@ -286,7 +286,7 @@ st.markdown("---")
 
 # ── Chart 3: Verspätungen nach Airline ────────────────────────────────────────
 st.subheader("Delays by Airline")
-st.caption("Sorted from most to least punctual - Hawaiian Airlines has the least delay of all.")
+st.caption("Sorted from most to least punctual - Hawaiian Airlines has the lowest delay rate of all airlines.")
 
 # Farbe je nach Verspätungsrate: grün → gelb → rot
 def airline_color(pct):

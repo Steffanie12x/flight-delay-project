@@ -138,7 +138,7 @@ st.markdown("---")
 
 # ── CHART 3: VERSPÄTUNGEN NACH AIRLINE (horizontales Balkendiagramm) ──────────
 st.subheader("Delays by Airline")
-st.caption("Sorted from most to least punctual - Hawaiian Airlines has the least delay of all.")
+st.caption("Sorted from most to least punctual - Hawaiian Airlines has the lowest delay rate of all airlines.")
 
 # Farben je nach Verspätungsrate: grün (gut) → gelb → rot (schlecht)
 def airline_color(pct: float) -> str:
