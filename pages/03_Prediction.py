@@ -13,7 +13,7 @@ from utils.weather import get_weather, classify_weather_condition, get_airport_l
 from model.predict import predict_delay, get_airline_options, get_destination_options
 
 st.set_page_config(
-    page_title="Prediction – Flight Delay",
+    page_title="Prediction – CatchYourFlight",
     page_icon="✈",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -52,6 +52,15 @@ if "bp_dest"    not in st.session_state:    st.session_state.bp_dest       = Non
 if "bp_date"    not in st.session_state:    st.session_state.bp_date       = None
 if "bp_hour"    not in st.session_state:    st.session_state.bp_hour       = None
 if "bp_scanned" not in st.session_state:    st.session_state.bp_scanned    = False
+
+def reset_boarding_pass():
+    """Setzt alle Boarding Pass Daten zurück, damit ein neuer Upload möglich ist."""
+    st.session_state.bp_airline = None
+    st.session_state.bp_origin  = None
+    st.session_state.bp_dest    = None
+    st.session_state.bp_date    = None
+    st.session_state.bp_hour    = None
+    st.session_state.bp_scanned = False
 
 # ─────────────────────────────────────────────
 # EINGABE-FORMULAR
@@ -115,74 +124,115 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader(
-    "📎 Drop your boarding pass here (photo or PDF) — we'll fill in the details automatically",
-    type=["png", "jpg", "jpeg", "pdf"],
-    label_visibility="visible",
-)
+# ── Bekannte Werte für Validierung ───────────────────────────────────────────
+# Diese Listen werden verwendet um extrahierte Werte zu prüfen
+KNOWN_AIRPORTS = ["ATL","ORD","DFW","DEN","LAX","SFO","PHX","IAH","LAS","MSP","MCO","SEA","DTW","BOS","EWR","JFK"]
+KNOWN_AIRLINES = ["AA","AS","B6","DL","F9","HA","MQ","OO","UA","WN"]
 
-if uploaded_file is not None and not st.session_state.bp_scanned:
-    with st.spinner("Analyzing boarding pass with AI..."):
-        try:
-            import anthropic
-            import base64
-
-            file_bytes = uploaded_file.read()
-            b64        = base64.standard_b64encode(file_bytes).decode("utf-8")
-            media_type = "application/pdf" if uploaded_file.type == "application/pdf" else uploaded_file.type
-
-            cclient = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
-            prompt = """Look at this boarding pass and extract the following information.
-Return ONLY a JSON object with these exact keys (no other text):
-{
-  "airline_code": "2-letter IATA code (e.g. AA, DL, UA)",
-  "origin": "3-letter airport code (e.g. JFK, LAX)",
-  "destination": "3-letter airport code (e.g. ATL, ORD)",
-  "date": "YYYY-MM-DD format",
-  "departure_hour": integer 0-23
-}
-If you cannot find a value, use null."""
-
-            if media_type == "application/pdf":
-                content = [
-                    {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": b64}},
-                    {"type": "text", "text": prompt}
-                ]
-            else:
-                content = [
-                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
-                    {"type": "text", "text": prompt}
-                ]
-
-            response  = client.messages.create(
-                model="claude-opus-4-5",
-                max_tokens=300,
-                messages=[{"role": "user", "content": content}]
-            )
-
-            raw       = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-            extracted = json.loads(raw)
-
-            st.session_state.bp_airline = extracted.get("airline_code")
-            st.session_state.bp_origin  = extracted.get("origin")
-            st.session_state.bp_dest    = extracted.get("destination")
-            st.session_state.bp_hour    = extracted.get("departure_hour")
-            st.session_state.bp_scanned = True
-
-            if extracted.get("date"):
-                try:
-                    st.session_state.bp_date = datetime.strptime(extracted["date"], "%Y-%m-%d").date()
-                except:
-                    pass
-
-            st.success("✅ Boarding pass scanned! Fields updated above — press Predict Delay.")
+# Wenn bereits gescannt: Reset-Button anzeigen statt Upload
+if st.session_state.bp_scanned:
+    scan_col, reset_col = st.columns([3, 1])
+    with scan_col:
+        st.success("✅ Boarding pass scanned! Adjust the fields above if needed, then press Predict Delay.")
+    with reset_col:
+        # Reset-Button: löscht alle Boarding Pass Daten und ermöglicht neuen Upload
+        if st.button("🔄 Scan new boarding pass", use_container_width=True):
+            reset_boarding_pass()
             st.rerun()
+else:
+    # Datei-Upload Widget (nur sichtbar wenn noch nicht gescannt)
+    uploaded_file = st.file_uploader(
+        "📎 Drop your boarding pass here (photo or PDF) — we'll fill in the details automatically",
+        type=["png", "jpg", "jpeg", "pdf"],
+        label_visibility="visible",
+    )
 
-        except Exception as e:
-            st.warning(f"Could not scan boarding pass automatically: {e}. Please fill in the details manually.")
+    if uploaded_file is not None:
+        with st.spinner("Analyzing boarding pass with AI..."):
+            try:
+                import anthropic
+                import base64
 
-elif st.session_state.bp_scanned:
-    st.success("✅ Boarding pass scanned! Adjust if needed and press Predict Delay.")
+                file_bytes = uploaded_file.read()
+                b64        = base64.standard_b64encode(file_bytes).decode("utf-8")
+                media_type = "application/pdf" if uploaded_file.type == "application/pdf" else uploaded_file.type
+
+                client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
+
+                # Verbesserter Prompt: listet bekannte Flughäfen und Airlines auf
+                # damit Claude keine unbekannten Codes zurückgibt
+                prompt = f"""You are analyzing a boarding pass image. Extract the flight information carefully.
+
+The app only supports these airports: {', '.join(KNOWN_AIRPORTS)}
+The app only supports these airline codes: {', '.join(KNOWN_AIRLINES)}
+
+Return ONLY a valid JSON object with these exact keys (no other text, no markdown):
+{{
+  "airline_code": "2-letter IATA airline code from the list above, or null if not found/not supported",
+  "origin": "3-letter IATA airport code from the list above, or null if not found/not supported",
+  "destination": "3-letter IATA airport code from the list above, or null if not found/not supported",
+  "date": "departure date in YYYY-MM-DD format, or null if not found",
+  "departure_hour": departure hour as integer 0-23 (look for scheduled departure time), or null if not found
+}}
+
+Look carefully at all text on the boarding pass. Flight numbers, gate info, and barcodes are not needed."""
+
+                # Inhalt je nach Dateityp (PDF oder Bild) aufbauen
+                if media_type == "application/pdf":
+                    content = [
+                        {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": b64}},
+                        {"type": "text", "text": prompt}
+                    ]
+                else:
+                    content = [
+                        {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
+                        {"type": "text", "text": prompt}
+                    ]
+
+                response = client.messages.create(
+                    model="claude-opus-4-5",
+                    max_tokens=400,
+                    messages=[{"role": "user", "content": content}]
+                )
+
+                # JSON parsen (Backticks entfernen falls Claude sie trotzdem schreibt)
+                raw       = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+                extracted = json.loads(raw)
+
+                # Extrahierte Werte validieren: nur bekannte Codes übernehmen
+                airline_raw = extracted.get("airline_code")
+                origin_raw  = extracted.get("origin")
+                dest_raw    = extracted.get("destination")
+
+                st.session_state.bp_airline = airline_raw if airline_raw in KNOWN_AIRLINES else None
+                st.session_state.bp_origin  = origin_raw  if origin_raw  in KNOWN_AIRPORTS else None
+                st.session_state.bp_dest    = dest_raw    if dest_raw    in KNOWN_AIRPORTS else None
+                st.session_state.bp_hour    = extracted.get("departure_hour")
+                st.session_state.bp_scanned = True
+
+                # Datum parsen falls vorhanden
+                if extracted.get("date"):
+                    try:
+                        st.session_state.bp_date = datetime.strptime(extracted["date"], "%Y-%m-%d").date()
+                    except Exception:
+                        pass
+
+                # Warnung anzeigen wenn nicht alle Felder gefunden wurden
+                missing = []
+                if not st.session_state.bp_airline: missing.append("airline")
+                if not st.session_state.bp_origin:  missing.append("departure airport")
+                if not st.session_state.bp_dest:    missing.append("destination airport")
+
+                if missing:
+                    st.warning(f"⚠️ Could not extract: {', '.join(missing)}. Please select manually above.")
+                else:
+                    st.success("✅ Boarding pass scanned! Fields updated above — press Predict Delay.")
+
+                st.rerun()
+
+            except Exception as e:
+                # Fehlerbehandlung: User kann manuell eingeben
+                st.warning(f"Could not scan boarding pass automatically: {e}. Please fill in the details manually.")
 
 # ── PREDICT BUTTON ────────────────────────────────────────────────────────────
 st.markdown("---")
