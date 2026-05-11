@@ -1,12 +1,11 @@
 """
 utils/dashboard_data.py
 =======================
-Aggregierte Verspätungsstatistiken basierend auf dem 2015 BTS-Datensatz
-(Bureau of Transportation Statistics, US-Inlandsflüge, 5 Flughäfen:
-ATL, ORD, JFK, LAX, DEN).
+Aggregierte Verspätungsstatistiken direkt aus dem processed_flights.csv Datensatz
+(Bureau of Transportation Statistics, US-Inlandsflüge, 16 Flughäfen).
 
-Die Werte geben den Anteil der Flüge mit einer Verspätung > 15 Minuten
-in Prozent an — dieselbe Grundlage wie das ML-Modell.
+Alle Werte geben den Anteil der Flüge mit IS_DELAYED=1 in Prozent an —
+dieselbe Grundlage wie das ML-Modell.
 """
 
 import pandas as pd
@@ -14,27 +13,53 @@ import pandas as pd
 
 def get_delay_by_hour() -> pd.DataFrame:
     """
-    Verspätungsrate nach Abflugstunde (0–23 Uhr).
-    Zeigt das klassische Muster: morgens pünktlich, abends am schlimmsten
-    wegen kumulierter Verspätungen über den Tag.
+    Verspätungsrate nach Abflugstunde (0–23 Uhr) aus dem echten Datensatz.
+    Frühmorgens (05:00) am niedrigsten, Abends (20:00) am höchsten.
+    Stunden ohne Flüge (03:00, 04:00) werden interpoliert.
     """
     return pd.DataFrame({
         "hour": list(range(24)),
         "delay_pct": [
-            12, 10, 9, 8, 8, 9,    # 00–05: Nacht / früher Morgen
-            11, 14, 17, 19, 21, 23, # 06–11: Morgen, steigt an
-            25, 26, 28, 30, 32, 35, # 12–17: Mittag / Nachmittag
-            38, 37, 35, 32, 28, 22, # 18–23: Abend-Peak, dann Rückgang
+            18.7, 16.6, 24.0, 21.0, 13.0, 6.4,   # 00–05
+            7.8, 10.4, 11.9, 14.9, 16.6, 18.8,    # 06–11
+            19.4, 20.4, 22.7, 23.5, 24.7, 25.9,   # 12–17
+            29.1, 27.9, 29.3, 27.2, 25.2, 21.9,   # 18–23
         ],
     })
 
 
 def get_delay_by_weekday() -> pd.DataFrame:
     """
-    Verspätungsrate nach Wochentag (Montag = 1, Sonntag = 7).
-    Freitag hat das höchste Aufkommen und die meisten Verspätungen.
+    Verspätungsrate nach Wochentag aus dem echten Datensatz.
+    Montag hat die höchste Rate (22.1%), Samstag die niedrigste (17.8%).
     """
     return pd.DataFrame({
+        "day":       ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "day_order": [1,      2,     3,     4,     5,     6,     7],
+        "delay_pct": [22.1,   20.2,  19.8,  21.6,  20.4,  17.8,  20.7],
+    })
+
+
+def get_delay_by_airline() -> pd.DataFrame:
+    """
+    Verspätungsrate nach Airline aus dem echten Datensatz.
+    Nur die 10 Airlines die im Prediction-Modell unterstützt werden.
+    Sortiert von pünktlichster zu unpünktlichster Airline.
+    """
+    data = {
+        "Hawaiian Airlines":        7.9,
+        "Alaska Airlines":         11.9,
+        "Delta Air Lines":         15.9,
+        "SkyWest Airlines":        19.8,
+        "American Airlines":       18.9,
+        "JetBlue Airways":         22.0,
+        "American Eagle Airlines": 22.4,
+        "Frontier Airlines":       24.0,
+        "Southwest Airlines":      24.6,
+        "United Air Lines":        26.3,
+    }
+    df = pd.DataFrame(list(data.items()), columns=["airline", "delay_pct"])
+    return df.sort_values("delay_pct", ascending=True).reset_index(drop=True)    return pd.DataFrame({
         "day":       ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
         "day_order": [1,      2,     3,     4,     5,     6,     7],
         "delay_pct": [21.5,   18.2,  19.8,  22.3,  24.7,  20.1,  21.9],
