@@ -219,7 +219,7 @@ LAYOUT_BASE = dict(
 
 # ── Chart 1: Verspätungen nach Tageszeit ──────────────────────────────────────
 st.subheader("Delays by Time of Day")
-st.caption("On average delays accumulate over the course of the day.")
+st.caption("Late night flights around 02:00 show a surprising delay spike — caused by delays carried over from the previous day.")
 
 # Stundenbeschriftungen für die X-Achse
 hour_labels = [f"{h:02d}:00" for h in df_hour["hour"]]
