@@ -1,1 +1,105 @@
+"""
+devcontainer.json
 
+Konfigurationsdatei für den GitHub Codespaces Dev Container.
+Legt fest, welches Docker-Image verwendet wird, welche VS Code-
+Erweiterungen installiert werden, welche Dateien beim Start geöffnet
+werden, wie Abhängigkeiten installiert werden und wie der
+Streamlit-Server gestartet wird.
+
+Autoren: silasmarty
+Datum:   letzte Woche (Commit 7e44f0b)
+
+Quellen:
+- Claude (claude.ai): Struktur der devcontainer.json,
+  updateContentCommand, postAttachCommand, portsAttributes
+  (diese Konzepte wurden im CS-Unterricht nicht behandelt)
+"""
+
+{
+  // Name des Dev Containers – wird in VS Code / Codespaces als Bezeichnung angezeigt
+  "name": "Python 3",
+
+  // Gibt an, welches vorgefertigte Docker-Image verwendet werden soll.
+  // "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm" ist ein
+  // offizielles Microsoft-Image mit Python 3.11 auf Debian "Bookworm".
+  //  Hilfsmittel: Claude – Docker-Images und Container-Konzept
+  //    wurden im Unterricht nicht behandelt.
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
+
+  // "customizations" enthält plattformspezifische Anpassungen (hier für
+  // Codespaces und VS Code). JSON-Objekt mit zwei Unterschlüsseln.
+  "customizations": {
+
+    // Einstellungen speziell für GitHub Codespaces
+    "codespaces": {
+
+      // Liste der Dateien, die beim Start des Codespace automatisch
+      // im Editor geöffnet werden (JSON-Array mit zwei Strings)
+      "openFiles": [
+        "README.md",   // Öffnet die Projektdokumentation
+        "app.py"       // Öffnet die Haupt-Python-Datei der Streamlit-App
+      ]
+    },
+
+    // Einstellungen speziell für VS Code
+    "vscode": {
+
+      // Leeres Einstellungsobjekt – keine benutzerdefinierten
+      // VS Code-Settings definiert
+      "settings": {},
+
+      // Liste der VS Code-Erweiterungen, die automatisch installiert
+      // werden (JSON-Array mit zwei Strings)
+      "extensions": [
+        "ms-python.python",         // Offizielle Python-Erweiterung von Microsoft
+        "ms-python.vscode-pylance"  // Pylance: erweiterter Python-Sprachserver
+                                    // (Autocomplete, Typprüfung etc.)
+      ]
+    }
+  },
+
+  // Befehl, der ausgeführt wird, sobald der Container-Inhalt aktualisiert wird.
+  //  Hilfsmittel: Claude – das Konzept "updateContentCommand" und
+  //    Shell-Bedingungen mit "[ -f ... ] &&" wurden im Unterricht nicht behandelt.
+  //
+  // Ablauf des Befehls (Shell-Logik mit &&):
+  // 1. Falls "packages.txt" existiert: apt-Paketliste aktualisieren,
+  //    alle Pakete upgraden und die in packages.txt gelisteten installieren.
+  // 2. Falls "requirements.txt" existiert: alle darin gelisteten
+  //    Python-Pakete via pip3 installieren.
+  // 3. Streamlit via pip3 installieren (immer, unabhängig von Dateien).
+  // 4. Erfolgsmeldung ausgeben: " Packages installed and Requirements met"
+  "updateContentCommand": "[ -f packages.txt ] && sudo apt update && sudo apt upgrade -y && sudo xargs apt install -y <packages.txt; [ -f requirements.txt ] && pip3 install --user -r requirements.txt; pip3 install --user streamlit; echo ' Packages installed and Requirements met'",
+
+  // Befehl, der ausgeführt wird, nachdem sich ein Benutzer mit dem
+  // Container verbunden hat ("postAttach").
+  //  Hilfsmittel: Claude – "postAttachCommand" ist kein Unterrichtsinhalt.
+  "postAttachCommand": {
+
+    // Startet den Streamlit-Webserver mit der Datei "app.py".
+    // --server.enableCORS false      → CORS-Schutz deaktiviert (nötig für Codespaces)
+    // --server.enableXsrfProtection false → XSRF-Schutz deaktiviert (nötig für Vorschau)
+    //  Hilfsmittel: Claude – CORS und XSRF sind keine Unterrichtsinhalte.
+    "server": "streamlit run app.py --server.enableCORS false --server.enableXsrfProtection false"
+  },
+
+  // Konfiguration für automatisch weitergeleitete Ports.
+  //  Hilfsmittel: Claude – Port-Forwarding wurde im Unterricht nicht behandelt.
+  "portsAttributes": {
+
+    // Einstellungen für Port 8501 (Standard-Port von Streamlit)
+    "8501": {
+      "label": "Application",        // Bezeichnung des Ports in der Codespaces-UI
+      "onAutoForward": "openPreview" // Öffnet automatisch eine Vorschau im Browser,
+                                     // sobald der Port verfügbar ist
+    }
+  },
+
+  // Liste der Ports, die vom Container nach aussen weitergeleitet werden
+  // (JSON-Array mit einer Zahl).
+  // Port 8501 ist der Standard-Port, auf dem Streamlit läuft.
+  "forwardPorts": [
+    8501
+  ]
+}
