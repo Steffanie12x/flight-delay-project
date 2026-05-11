@@ -203,10 +203,10 @@ if st.session_state.bp_scanned:
     scan_col, reset_col = st.columns([3, 1])
     with scan_col:
         # Grüne Erfolgsmeldung anzeigen
-        st.success("Boarding pass scanned! Adjust the fields above if needed, then press Predict Delay.")
+        st.success("✅ Boarding pass scanned! Adjust the fields above if needed, then press Predict Delay.")
     with reset_col:
         # Button zum Zurücksetzen des Scans
-        if st.button("Scan new boarding pass", use_container_width=True):
+        if st.button("🔄 Scan new boarding pass", use_container_width=True):
             reset_boarding_pass()   # Alle Boarding-Pass-Daten im session_state löschen
             st.rerun()              # Seite neu laden damit das Upload-Widget wieder erscheint
 else:
@@ -344,10 +344,10 @@ Look carefully at all text on the boarding pass. Flight numbers, gate info, and 
 
                 # Falls Felder fehlen: Warnmeldung mit den fehlenden Feldern anzeigen
                 if missing:
-                    st.warning(f"Could not extract: {', '.join(missing)}. Please select manually above.")
+                    st.warning(f"⚠️ Could not extract: {', '.join(missing)}. Please select manually above.")
                 else:
                     # Alle Felder erfolgreich extrahiert: Erfolgsmeldung
-                    st.success("Boarding pass scanned! Fields updated above — press Predict Delay.")
+                    st.success("✅ Boarding pass scanned! Fields updated above — press Predict Delay.")
 
                 # Lädt die Seite neu, damit die Dropdowns mit den neuen Werten befüllt werden
                 st.rerun()
@@ -423,10 +423,10 @@ if predict_btn:
 
     # Dictionary: Wetterbedingung → Emoji + Text für die Anzeige
     condition_icons = {
-        "Heavy Snow":  "Heavy Snow", "Light Snow":  "🌨️ Light Snow",
-        "Heavy Rain":  "Heavy Rain", "Light Rain":  "🌦️ Light Rain",
-        "Strong Wind": "Strong Wind", "Overcast":   "☁️ Overcast",
-        "Good":        "Good",
+        "Heavy Snow":  "❄️ Heavy Snow", "Light Snow":  "🌨️ Light Snow",
+        "Heavy Rain":  "🌧️ Heavy Rain", "Light Rain":  "🌦️ Light Rain",
+        "Strong Wind": "💨 Strong Wind", "Overcast":   "☁️ Overcast",
+        "Good":        "☀️ Good",
     }
 
     st.markdown("---")
@@ -587,7 +587,7 @@ with btn_col:
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 # Rendert einen zentrierten Footer-Text via HTML/CSS
-# ⚠️ Hilfsmittel: Claude – HTML-Footer wurde im Unterricht nicht behandelt
+# Hilfsmittel: Claude – HTML-Footer wurde im Unterricht nicht behandelt
 st.markdown("""
 <div style="border-top:1px solid #e0e0e0; padding-top:1rem; text-align:center;
     color:#aaaaaa; font-size:0.72rem;">
