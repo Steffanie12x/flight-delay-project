@@ -17,8 +17,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-st.markdown("<style>[data-testid='stSidebar'],[data-testid='collapsedControl']{display:none!important}</style>", unsafe_allow_html=True)
-
 # ── Navbar anzeigen ───────────────────────────────────────────────────────────
 # Zeigt die Navigationsleiste mit Flight Delay · ZRH und den Seiten-Links
 show_navbar()
@@ -148,7 +146,7 @@ st.markdown("""
     line-height: 1.7;
     border-radius: 0 8px 8px 0;
 ">
-    <em>When planning a trip everybody crosses the issue of planning the right amount of time at the airport. CatchYourFlight solves this problem by estimating the delay probability for your specific flight from the 16 busiest US airports by deriving historical delay patterns.</em>
+    <em>When planning a trip everybody crosses the issue of planning the right amount of time at the airport — neither too much nor too less. CatchYourFlight solves this problem by estimating the delay probability for your specific flight from the 16 busiest US airports by deriving historical delay patterns.</em>
 </div>
 """, unsafe_allow_html=True)
 
@@ -166,7 +164,7 @@ st.markdown("""
         Why this tool?
     </div>
     <div style="color:#333333; font-size:0.9rem; line-height:2.1;">
-        ✈ &nbsp; The Friday afternoon flight from JFK is often delayed — consider booking a different time.<br>
+        ✈ &nbsp; The Monday morning flight is often delayed — consider booking on a Saturday instead.<br>
         ✈ &nbsp; Got a connecting flight? Check the risk and plan enough buffer time.<br>
         ✈ &nbsp; Which airline is the most reliable on your route?
     </div>
@@ -183,7 +181,8 @@ def show_about():
     st.markdown("""
     **CatchYourFlight** is a student project developed at the University of St. Gallen.
 
-    Our goal is to help travelers make smarter booking decisions by deriving historical flight delay data from the 16 busiest US airports.
+    Our goal is to make flight delay data from the 16 busiest US airports accessible and understandable —
+    helping travelers make smarter booking decisions.
 
     ---
     **Team**
@@ -220,7 +219,7 @@ LAYOUT_BASE = dict(
 
 # ── Chart 1: Verspätungen nach Tageszeit ──────────────────────────────────────
 st.subheader("Delays by Time of Day")
-st.caption("Share of flights delayed > 15 min — delays accumulate over the course of the day.")
+st.caption("On average delays accumulate over the course of the day.")
 
 # Stundenbeschriftungen für die X-Achse
 hour_labels = [f"{h:02d}:00" for h in df_hour["hour"]]
@@ -255,10 +254,10 @@ st.markdown("---")
 
 # ── Chart 2: Verspätungen nach Wochentag ──────────────────────────────────────
 st.subheader("Delays by Day of Week")
-st.caption("Friday has the highest delay rate — busiest travel day with cumulative delays.")
+st.caption("Monday usually is the day with the highest probability of delay.")
 
 # Freitag rot hervorheben, alle anderen lila
-bar_colors_weekday = ["#EF4444" if d == "Fri" else COLOR_BAR for d in df_weekday["day"]]
+bar_colors_weekday = ["#EF4444" if d == "Mon" else COLOR_BAR for d in df_weekday["day"]]
 
 fig_weekday = go.Figure()
 fig_weekday.add_trace(go.Bar(
@@ -285,7 +284,7 @@ st.markdown("---")
 
 # ── Chart 3: Verspätungen nach Airline ────────────────────────────────────────
 st.subheader("Delays by Airline")
-st.caption("Sorted from most to least punctual — green < 16%, yellow 16–22%, red > 22%.")
+st.caption("Hawaiian Airlines is your best choice when searching for a flight with statistically low delay probability!")
 
 # Farbe je nach Verspätungsrate: grün → gelb → rot
 def airline_color(pct):
@@ -329,6 +328,6 @@ with btn_col:
 st.markdown("""
 <div style="border-top:1px solid #e0e0e0; padding-top:1rem; text-align:center;
     color:#aaaaaa; font-size:0.72rem;">
-    Computer Science Project · University of St. Gallen · CatchYourFlight · 2026
+    CS Project · University of St. Gallen · US Airport Flight Data · 2026 · Source: BTS 2015
 </div>
 """, unsafe_allow_html=True)
