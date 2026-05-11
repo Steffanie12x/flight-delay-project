@@ -1,1 +1,399 @@
+"""
+model/predict.py
 
+Vorhersage-Modul für Flugverspätungen.
+Lädt trainierte ML-Modelle und berechnet anhand von Flugdaten
+(Airline, Flughafen, Datum, Uhrzeit, Wetter) die Wahrscheinlichkeit
+einer Verspätung sowie die Risikokategorie und die wichtigsten
+Einflussfaktoren.
+
+Autoren: benmrb
+Datum:   18 hours ago (Commit 8d52d6f)
+
+Quellen:
+- Claude (claude.ai): Haversine-Formel, joblib-Modell-Laden,
+  predict_proba-Verwendung, Label-Encoder-Logik, Modellstruktur
+  (_binary_model / _multi_model), DELAY_BENCHMARK-Schwellenwert-
+  Logik sowie die gesamte Struktur des predict_delay-Rückgabe-
+  Dictionarys wurden mit Claude erarbeitet.
+"""
+
+# Importiert pandas für die Erstellung von DataFrames (Unterrichtsinhalt)
+import pandas as pd
+
+# Importiert joblib zum Laden von gespeicherten ML-Modellen (.pkl-Dateien)
+# Hilfsmittel: Claude – joblib wurde im Unterricht nicht behandelt
+import joblib
+
+# Importiert os für Dateipfad-Prüfungen (z.B. ob eine Datei existiert)
+# Hilfsmittel: Claude – os.path.exists wurde im Unterricht nicht behandelt
+import os
+
+# Importiert math für trigonometrische Funktionen (sin, cos, asin, sqrt, radians)
+# Hilfsmittel: Claude – die Haversine-Formel mit math wurde im Unterricht nicht behandelt
+import math
+
+# Importiert datetime für die Verarbeitung von Datumswerten
+# Hilfsmittel: Claude – datetime.strptime und combine wurden im Unterricht nicht behandelt
+from datetime import datetime
+
+# Definiert den Ordnerpfad, in dem die trainierten Modelle gespeichert sind (String-Variable)
+MODEL_DIR = "models"
+
+# Dictionary: Ordnet Airline-Kürzel (Keys, Strings) den ausgeschriebenen Namen (Values, Strings) zu
+# Dictionaries mit Key-Value-Paaren sind Unterrichtsinhalt
+AIRLINE_NAMES = {
+    "AA": "American Airlines",
+    "AS": "Alaska Airlines",
+    "B6": "JetBlue Airways",
+    "DL": "Delta Air Lines",
+    "F9": "Frontier Airlines",
+    "HA": "Hawaiian Airlines",
+    "MQ": "Envoy Air (American Eagle)",
+    "OO": "SkyWest Airlines",
+    "UA": "United Air Lines",
+    "WN": "Southwest Airlines",
+}
+
+# Dictionary: Ordnet Flughafen-Codes (Keys) den ausgeschriebenen Namen inkl. Code (Values) zu
+AIRPORT_NAMES = {
+    "ATL": "Atlanta (ATL)",
+    "ORD": "Chicago O'Hare (ORD)",
+    "DFW": "Dallas Fort Worth (DFW)",
+    "DEN": "Denver (DEN)",
+    "LAX": "Los Angeles (LAX)",
+    "SFO": "San Francisco (SFO)",
+    "PHX": "Phoenix (PHX)",
+    "IAH": "Houston (IAH)",
+    "LAS": "Las Vegas (LAS)",
+    "MSP": "Minneapolis (MSP)",
+    "MCO": "Orlando (MCO)",
+    "SEA": "Seattle (SEA)",
+    "DTW": "Detroit (DTW)",
+    "BOS": "Boston (BOS)",
+    "EWR": "Newark (EWR)",
+    "JFK": "New York JFK (JFK)",
+}
+
+# Schwellenwert (float) für die binäre Klassifikation:
+# Liegt die Verspätungswahrscheinlichkeit über 0.33, gilt der Flug als "wahrscheinlich verspätet"
+#  Hilfsmittel: Claude – das Konzept eines Benchmark-Schwellenwerts für Klassifikation
+#    wurde im Unterricht nicht explizit so eingeführt
+DELAY_BENCHMARK = 0.33
+
+# Dictionary: Ordnet Flughafen-Codes ihren GPS-Koordinaten zu
+# Jeder Value ist ein Tupel (latitude, longitude) – Tupel sind Unterrichtsinhalt
+AIRPORT_COORDS = {
+    "ATL": (33.6407, -84.4277),
+    "ORD": (41.9742, -87.9073),
+    "DFW": (32.8998, -97.0403),
+    "DEN": (39.8561, -104.6737),
+    "LAX": (33.9425, -118.4081),
+    "SFO": (37.6213, -122.3790),
+    "PHX": (33.4373, -112.0078),
+    "IAH": (29.9902, -95.3368),
+    "LAS": (36.0840, -115.1537),
+    "MSP": (44.8848, -93.2223),
+    "MCO": (28.4294, -81.3089),
+    "SEA": (47.4502, -122.3088),
+    "DTW": (42.2162, -83.3554),
+    "BOS": (42.3656, -71.0096),
+    "EWR": (40.6895, -74.1745),
+    "JFK": (40.6413, -73.7781),
+}
+
+
+# Definiert eine Hilfsfunktion zur Berechnung der Distanz zwischen zwei Flughäfen
+# in Kilometern anhand der Haversine-Formel (Kugelgeometrie)
+#  Hilfsmittel: Claude – die Haversine-Formel ist kein Unterrichtsinhalt
+def _haversine(origin, destination):
+    # Falls einer der Flughäfen nicht in den Koordinaten vorhanden ist,
+    # wird ein Standardwert von 2500.0 km zurückgegeben
+    if origin not in AIRPORT_COORDS or destination not in AIRPORT_COORDS:
+        return 2500.0
+    # Konvertiert die Breitengrade beider Flughäfen von Grad in Bogenmaß (Radians)
+    lat1 = math.radians(AIRPORT_COORDS[origin][0])
+    # Konvertiert die Längengrade beider Flughäfen von Grad in Bogenmaß
+    lon1 = math.radians(AIRPORT_COORDS[origin][1])
+    lat2 = math.radians(AIRPORT_COORDS[destination][0])
+    lon2 = math.radians(AIRPORT_COORDS[destination][1])
+    # Berechnet den Haversine-Zwischenwert a anhand der trigonometrischen Formel
+    a = math.sin((lat2-lat1)/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin((lon2-lon1)/2)**2
+    # Berechnet und gibt die Distanz in km zurück (Erdradius = 6371 km), gerundet auf 0 Nachkommastellen
+    return round(6371 * 2 * math.asin(math.sqrt(a)), 0)
+
+
+# Definiert eine Funktion zum Laden aller vier benötigten Modell-Dateien aus dem MODEL_DIR-Ordner
+#  Hilfsmittel: Claude – joblib.load und das Laden von .pkl-Dateien wurden im Unterricht nicht behandelt
+def load_models():
+    # Liste der vier benötigten Dateinamen als Strings
+    required = ["binary_model.pkl", "multiclass_model.pkl", "encoders.pkl", "feature_list.pkl"]
+    # For-Schleife: prüft für jede Datei, ob sie im MODEL_DIR-Ordner existiert (Unterrichtsinhalt)
+    for f in required:
+        # Falls eine der Dateien nicht existiert, gibt die Funktion vier None-Werte zurück
+        if not os.path.exists(f"{MODEL_DIR}/{f}"):
+            return None, None, None, None
+    # Gibt alle vier Modelle als Tupel zurück, geladen mit joblib.load
+    return (
+        joblib.load(f"{MODEL_DIR}/binary_model.pkl"),       # Binäres Klassifikationsmodell (verspätet / nicht verspätet)
+        joblib.load(f"{MODEL_DIR}/multiclass_model.pkl"),   # Multi-Klassen-Modell (Art der Verspätung)
+        joblib.load(f"{MODEL_DIR}/encoders.pkl"),           # Label-Encoder für kategorische Features
+        joblib.load(f"{MODEL_DIR}/feature_list.pkl"),       # Liste der erwarteten Feature-Spalten
+    )
+
+
+# Lädt die Modelle beim Import des Moduls sofort (globale Variablen)
+#  Hilfsmittel: Claude – Tuple-Unpacking beim Funktionsaufruf auf Modulebene
+#    wurde im Unterricht nicht explizit so eingeführt
+_binary_model, _multi_model, _encoders, _feature_list = load_models()
+
+
+# Definiert eine Hilfsfunktion, die Wetterdaten für eine bestimmte Abflugstunde aus einem DataFrame holt
+def _get_weather_at_hour(weather_df, dep_hour):
+    # Filtert den weather_df nach der Zeile, deren "hour"-Spalte mit dep_hour übereinstimmt
+    row = weather_df[weather_df["hour"] == dep_hour]
+    # Nimmt die erste gefundene Zeile; falls keine gefunden, wird die erste Zeile des gesamten DataFrames verwendet
+    row = row.iloc[0] if not row.empty else weather_df.iloc[0]
+    # Gibt ein Dictionary mit den Wetterwerten zurück (float-Werte, gerundet)
+    # Fehlende Werte (None/NaN) werden durch sinnvolle Standardwerte ersetzt
+    return {
+        "TEMP":   round(float(row["temperature"] or 20.0), 1),    # Temperatur in °C, Standard: 20.0
+        "PRCP_H": round(float(row["precipitation"] or 0.0), 2),   # Niederschlag in mm, Standard: 0.0
+        "SNOW_H": round(float(row["snowfall"] or 0.0), 2),        # Schneefall in mm, Standard: 0.0
+        "WIND":   round(float(row["windspeed"] / 3.6 if row["windspeed"] else 5.0), 2),  # Windgeschwindigkeit: km/h → m/s umgerechnet (÷3.6), Standard: 5.0
+        "CLOUD":  round(float(row["cloudcover"] or 50.0), 1),     # Wolkenbedeckung in %, Standard: 50.0
+    }
+
+
+# Hauptfunktion: Berechnet die Verspätungswahrscheinlichkeit und gibt ein Ergebnis-Dictionary zurück
+#  Hilfsmittel: Claude – Gesamtstruktur der Funktion, predict_proba-Aufrufe,
+#    Label-Encoder-Logik und Aufbau des Rückgabe-Dictionarys wurden mit Claude erarbeitet
+def predict_delay(airline, origin, destination, flight_date, dep_hour, weather_df):
+    # Falls das Modell nicht geladen werden konnte, wird ein Fehler-Dictionary zurückgegeben
+    if _binary_model is None:
+        return {"error": "Modell nicht geladen."}
+
+    # Falls flight_date als String übergeben wurde, wird er in ein datetime-Objekt umgewandelt
+    if isinstance(flight_date, str):
+        dt = datetime.strptime(flight_date, "%Y-%m-%d")
+    # Falls es bereits ein date-Objekt ist, wird es mit Mitternacht zu einem datetime kombiniert
+    else:
+        dt = datetime.combine(flight_date, datetime.min.time())
+
+    # Extrahiert den Monat (Integer 1–12) aus dem Datum
+    month = dt.month
+    # Extrahiert den Wochentag (Integer 1=Montag bis 7=Sonntag nach ISO-Standard)
+    day_of_week = dt.isoweekday()
+    # Ruft die Wetterdaten für die Abflugstunde ab (Dictionary mit 5 Wetterwerten)
+    weather = _get_weather_at_hour(weather_df, dep_hour)
+    # Berechnet die Distanz zwischen Start- und Zielflughafen in km mit der Haversine-Funktion
+    distance_km = _haversine(origin, destination)
+
+    # Erstellt ein Dictionary mit allen Input-Features für das ML-Modell
+    input_data = {
+        "MONTH":               month,          # Monat des Fluges (Integer)
+        "DAY_OF_WEEK":         day_of_week,    # Wochentag (Integer 1–7)
+        "DEP_HOUR":            dep_hour,       # Abflugstunde (Integer 0–23)
+        "AIRLINE":             airline,        # Airline-Kürzel (String)
+        "ORIGIN_AIRPORT":      origin,         # Abflughafen-Code (String)
+        "DESTINATION_AIRPORT": destination,    # Zielflughafen-Code (String)
+        "DISTANCE_KM":         distance_km,    # Distanz in km (float)
+        "TEMP":                weather["TEMP"],    # Temperatur in °C (float)
+        "PRCP_H":              weather["PRCP_H"],  # Niederschlag in mm (float)
+        "SNOW_H":              weather["SNOW_H"],  # Schneefall in mm (float)
+        "WIND":                weather["WIND"],    # Windgeschwindigkeit in m/s (float)
+        "CLOUD":               weather["CLOUD"],   # Wolkenbedeckung in % (float)
+    }
+
+    # Wandelt das input_data-Dictionary in einen pandas DataFrame um (eine Zeile = eine Instanz)
+    df = pd.DataFrame([input_data])
+    # Filtert die Spalten des DataFrames so, dass nur Features enthalten sind,
+    # die auch in der gespeicherten _feature_list vorhanden sind (List Comprehension – Unterrichtsinhalt)
+    df = df[[f for f in _feature_list if f in df.columns]]
+
+    # For-Schleife: wendet für jede kategorische Spalte den zugehörigen Label-Encoder an
+    #  Hilfsmittel: Claude – Label-Encoding mit sklearn LabelEncoder wurde im Unterricht nicht behandelt
+    for col, encoder in _encoders.items():
+        if col in df.columns:
+            # Erstellt eine Menge (set) der bekannten Klassen des Encoders
+            known = set(encoder.classes_)
+            # Ersetzt unbekannte Werte durch die erste bekannte Klasse (Fallback)
+            df[col] = df[col].apply(lambda x: x if x in known else encoder.classes_[0])
+            # Kodiert die Spalte numerisch (z.B. "AA" → 0, "DL" → 2 etc.)
+            df[col] = encoder.transform(df[col].astype(str))
+
+    # Gibt die Wahrscheinlichkeit für Klasse 1 (= Verspätung) zurück ([0][1] = erste Zeile, zweite Klasse)
+    #  Hilfsmittel: Claude – predict_proba ist kein Unterrichtsinhalt
+    delay_prob = _binary_model.predict_proba(df)[0][1]
+    # Gibt alle Klassenwahrscheinlichkeiten des Multi-Klassen-Modells zurück
+    all_probs  = _multi_model.predict_proba(df)[0]
+    # Holt die Klassennamen (z.B. "No Delay", "Carrier Delay" etc.) aus dem Label-Encoder
+    categories = _multi_model._label_encoder.classes_
+
+    # Erstellt ein Dictionary nur mit Verspätungskategorien (ohne "No Delay") und ihren Wahrscheinlichkeiten
+    delay_only = {c: p for c, p in zip(categories, all_probs) if c != "No Delay"}
+    # Bestimmt die wahrscheinlichste Verspätungskategorie (höchste Wahrscheinlichkeit)
+    best_cat   = max(delay_only, key=delay_only.get)
+
+    # Bestimmt Risikostufe und Anzeigemodus anhand der berechneten Verspätungswahrscheinlichkeit
+    if delay_prob < DELAY_BENCHMARK:
+        # Wahrscheinlichkeit unter 33%: niedriges Risiko, keine Verspätung erwartet
+        display_mode, display_category = "low_risk", "No Delay"
+        risk_level, risk_color = "Low", "#10B981"    # Grün
+    elif delay_prob < 0.66:
+        # Wahrscheinlichkeit zwischen 33% und 66%: mittleres Risiko
+        display_mode, display_category = "show_category", best_cat
+        risk_level, risk_color = "Medium", "#F59E0B"  # Orange
+    else:
+        # Wahrscheinlichkeit über 66%: hohes Risiko
+        display_mode, display_category = "show_category", best_cat
+        risk_level, risk_color = "High", "#EF4444"    # Rot
+
+    # ── Historische Verspätungsraten pro Airline (aus BTS 2015 Daten) ──────────
+    # Diese Werte spiegeln die tatsächliche Pünktlichkeit der Airline wider,
+    # unabhängig von der ML-Modell-Ausgabe
+    # Dictionary: Airline-Kürzel → historische Verspätungsrate in % (float)
+    AIRLINE_DELAY_RATES = {
+        "HA": 9.2,   # Hawaiian Airlines   → sehr pünktlich
+        "AS": 14.8,  # Alaska Airlines     → pünktlich
+        "DL": 17.1,  # Delta Air Lines     → durchschnittlich
+        "OO": 18.3,  # SkyWest Airlines    → durchschnittlich
+        "WN": 19.6,  # Southwest Airlines  → durchschnittlich
+        "UA": 21.4,  # United Air Lines    → leicht erhöht
+        "AA": 22.8,  # American Airlines   → hoch
+        "B6": 24.2,  # JetBlue Airways     → hoch
+        "MQ": 24.8,  # Envoy Air           → hoch
+        "F9": 27.1,  # Frontier Airlines   → sehr hoch
+    }
+
+    # Leere Liste, die schrittweise mit den wichtigsten Verspätungsfaktoren befüllt wird
+    top_factors = []
+
+    # Faktor 1: Abflugzeit
+    # Abflugzeit: 03:00–08:00 ist am sichersten (LOW)
+    # Späte Nacht (00:00–02:00) ist MEDIUM wegen akkumulierter Delays vom Vortag
+    # Ab 15:00 steigt die Rate stark (43–59%) → HIGH
+    if dep_hour >= 15:
+        # Abflugzeit ab 15:00 Uhr: hohes Verspätungsrisiko
+        top_factors.append({"label": f"Late departure ({dep_hour:02d}:00)", "impact": "high"})
+    elif 3 <= dep_hour < 9:
+        # Abflugzeit zwischen 03:00 und 08:59 Uhr: niedriges Verspätungsrisiko
+        top_factors.append({"label": f"Early departure ({dep_hour:02d}:00)", "impact": "low"})
+    else:
+        # Alle anderen Abflugzeiten (09:00–14:59 und 00:00–02:59): mittleres Risiko
+        top_factors.append({"label": f"Midday departure ({dep_hour:02d}:00)", "impact": "medium"})
+
+    # Faktor 2: Airline
+    # Bestimmt den Impact-Level der Airline basierend auf der historischen Verspätungsrate
+    # Standard-Rückgabewert 20.0% falls Airline nicht im Dictionary vorhanden
+    airline_rate   = AIRLINE_DELAY_RATES.get(airline, 20.0)
+    # < 16% = low, 16–22% = medium, > 22% = high (bedingte Zuweisung mit Ternary – Unterrichtsinhalt)
+    airline_impact = "low" if airline_rate < 16 else "high" if airline_rate >= 22 else "medium"
+    # Fügt die Airline als Faktor zur Liste hinzu (ausgeschriebener Name aus AIRLINE_NAMES)
+    top_factors.append({
+        "label": AIRLINE_NAMES.get(airline, airline),
+        "impact": airline_impact
+    })
+
+    # Faktor 3: Saison / Monat
+    # Saison: Jun/Jul/Aug und Dez haben höchste Delay-Raten (42–45%)
+    # Jan/Feb sind überraschend niedrig (20–26%) — wenig Verkehr nach den Feiertagen
+    # Rest: medium (32–36%)
+    if month in [6, 7, 8]:
+        # Sommermonate Juni, Juli, August: höchste Verspätungsraten
+        top_factors.append({"label": "Summer season (peak delays)", "impact": "high"})
+    elif month == 12:
+        # Dezember: hohe Verspätungen durch Feiertage und schlechtes Wetter
+        top_factors.append({"label": "December (holidays + weather)", "impact": "high"})
+    elif month in [1, 2]:
+        # Januar und Februar: niedriges Verspätungsrisiko nach den Feiertagen
+        top_factors.append({"label": "Post-holiday season (low traffic)", "impact": "low"})
+    else:
+        # Alle anderen Monate: mittleres Verspätungsrisiko
+        top_factors.append({"label": "Mid-season", "impact": "medium"})
+
+    # Faktor 4: Wetter
+    # Wetter: Regen hat laut Modell starken Effekt (36% → 41% bei 1mm Regen → HIGH)
+    # Schnee zeigt im Modell überraschend wenig Effekt (Trainingsdaten-Limitation)
+    if weather["SNOW_H"] > 0.5:
+        # Starker Schneefall: mittleres Verspätungsrisiko
+        top_factors.append({"label": "Snow at departure", "impact": "medium"})
+    elif weather["SNOW_H"] > 0:
+        # Leichter Schneefall: mittleres Risiko
+        top_factors.append({"label": "Light snow at departure", "impact": "medium"})
+    elif weather["PRCP_H"] > 0.5:
+        # Regen (> 0.5mm): hohes Verspätungsrisiko
+        top_factors.append({"label": "Rain at departure", "impact": "high"})
+    elif weather["PRCP_H"] > 0:
+        # Leichter Regen: mittleres Risiko
+        top_factors.append({"label": "Light rain at departure", "impact": "medium"})
+    else:
+        # Kein Niederschlag: günstiges Wetter, niedriges Risiko
+        top_factors.append({"label": "Favorable weather", "impact": "low"})
+
+    # Faktor 5: Wochentag
+    # Dictionary: Wochentag-Nummer (Integer) → ausgeschriebener Name (String)
+    weekdays = {1:"Monday", 2:"Tuesday", 3:"Wednesday", 4:"Thursday",
+                5:"Friday", 6:"Saturday", 7:"Sunday"}
+    # Wochentag: Modell zeigt Montag als höchsten (40%), Samstag als niedrigsten (34%)
+    if day_of_week == 1:
+        # Montag: höchste Verspätungsrate laut Modell
+        dow_impact = "high"
+    elif day_of_week == 6:
+        # Samstag: niedrigste Verspätungsrate laut Modell
+        dow_impact = "low"
+    else:
+        # Alle anderen Wochentage: mittleres Risiko
+        dow_impact = "medium"
+    # Fügt den Wochentag als Faktor zur Liste hinzu
+    top_factors.append({
+        "label": f"{weekdays.get(day_of_week, '')} flight",
+        "impact": dow_impact
+    })
+
+    # Gibt ein Dictionary mit allen Vorhersage-Ergebnissen zurück
+    return {
+        "delay_probability":     round(float(delay_prob), 3),   # Verspätungswahrscheinlichkeit als float (3 Nachkommastellen)
+        "delay_probability_pct": f"{delay_prob:.0%}",           # Verspätungswahrscheinlichkeit als formatierter Prozentsatz-String
+        "display_mode":          display_mode,                  # Anzeigemodus: "low_risk" oder "show_category"
+        "display_category":      display_category,              # Angezeigte Kategorie: "No Delay" oder Verspätungstyp
+        "risk_level":            risk_level,                    # Risikobezeichnung: "Low", "Medium" oder "High"
+        "risk_color":            risk_color,                    # Farbe für die UI als Hex-Code (String)
+        "all_categories":        {c: round(float(p), 3) for c, p in zip(categories, all_probs)},  # Dictionary aller Kategorien mit ihren Wahrscheinlichkeiten
+        "weather_used":          weather,                       # Dictionary der verwendeten Wetterdaten
+        "distance_km":           distance_km,                   # Berechnete Flugdistanz in km (float)
+        "is_likely_delayed":     delay_prob >= DELAY_BENCHMARK, # Boolean: True wenn Verspätung wahrscheinlich
+        "top_factors":           top_factors,                   # Liste der wichtigsten Einflussfaktoren
+    }
+
+
+# Definiert eine Funktion, die ein Dictionary mit verfügbaren Airlines zurückgibt
+#  Hilfsmittel: Claude – Filterung über Label-Encoder-Klassen wurde im Unterricht nicht behandelt
+def get_airline_options():
+    # Set mit nicht mehr aktiven Airlines (werden herausgefiltert)
+    DEFUNCT = {"NK", "US", "VX", "EV"}
+    # Falls ein Airline-Encoder vorhanden ist, werden die Klassen aus dem Encoder geholt
+    if _encoders and "AIRLINE" in _encoders:
+        codes = sorted(_encoders["AIRLINE"].classes_.tolist())
+    # Andernfalls wird die hardcodierte AIRLINE_NAMES-Liste als Fallback verwendet
+    else:
+        codes = list(AIRLINE_NAMES.keys())
+    # Gibt ein Dictionary zurück: ausgeschriebener Name → Kürzel
+    # Nur aktive Airlines, die auch in AIRLINE_NAMES vorhanden sind (Dict Comprehension – Unterrichtsinhalt)
+    return {
+        AIRLINE_NAMES.get(c, c): c
+        for c in codes
+        if c not in DEFUNCT and c in AIRLINE_NAMES
+    }
+
+
+# Definiert eine Funktion, die alle Zielflughäfen zurückgibt (ausser dem Abflughafen)
+def get_destination_options(origin):
+    # Dict Comprehension: filtert origin heraus und gibt Name → Code zurück (Unterrichtsinhalt)
+    return {name: code for code, name in AIRPORT_NAMES.items() if code != origin}
+
+
+# Definiert eine Funktion, die alle Flughäfen als Dictionary zurückgibt (Name → Code)
+def get_airport_list():
+    # Dict Comprehension über alle Einträge in AIRPORT_NAMES (Unterrichtsinhalt)
+    return {name: code for code, name in AIRPORT_NAMES.items()}
