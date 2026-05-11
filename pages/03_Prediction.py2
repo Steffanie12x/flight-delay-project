@@ -1,1 +1,596 @@
+"""
+pages/03_Prediction.py
 
+ML-Vorhersage-Seite der CatchYourFlight-App.
+Ermöglicht dem Benutzer, Flugdetails einzugeben (Flughafen, Airline,
+Datum, Uhrzeit) und erhält eine KI-basierte Verspätungsvorhersage.
+Als Alternative zu den manuellen Dropdown-Menüs kann ein Boarding Pass
+(Bild oder PDF) hochgeladen und automatisch per Claude-API gescannt werden.
+
+Autoren: Sára Jankovičová
+Datum:   12 hours ago (Commit b1b136f)
+
+Quellen:
+- Claude (claude.ai): st.session_state, st.file_uploader, st.dialog,
+  base64-Encoding, anthropic.Anthropic()-API-Aufruf, PIL-Bildkomprimierung,
+  CSS-Injektion via st.markdown, HTML-Karten (KPI Cards, Weather Cards,
+  Contributing Factors) sowie die gesamte Boarding-Pass-Scan-Logik
+  wurden mit Claude erarbeitet, da diese Konzepte im Unterricht nicht
+  behandelt wurden.
+"""
+
+# Importiert Streamlit für die Web-App-Oberfläche
+# Hilfsmittel: Claude – Streamlit wurde im Unterricht nicht behandelt
+import streamlit as st
+
+# Importiert date und datetime für Datums- und Zeitoperationen (Unterrichtsinhalt: datetime.strptime)
+from datetime import date, datetime
+
+# Importiert json für das Parsen der Claude-API-Antwort (JSON-String → Python-Dictionary)
+# Hilfsmittel: Claude – json.loads wurde im Unterricht nicht behandelt
+import json
+
+# Importiert die Navbar-Funktion aus dem utils-Ordner
+from utils.navbar import show_navbar
+
+# Importiert Wetter-Hilfsfunktionen aus utils/weather.py
+from utils.weather import get_weather, classify_weather_condition, get_airport_list
+
+# Importiert die Vorhersage- und Optionsfunktionen aus model/predict.py
+from model.predict import predict_delay, get_airline_options, get_destination_options
+
+# Konfiguriert die Streamlit-Seite: Titel, Icon, Layout und Sidebar-Zustand
+# Hilfsmittel: Claude – st.set_page_config ist Streamlit-spezifisch
+st.set_page_config(
+    page_title="Prediction – CatchYourFlight",  # Titel im Browser-Tab (String)
+    page_icon="✈",                              # Emoji-Icon im Browser-Tab
+    layout="wide",                              # Volle Fensterbreite nutzen
+    initial_sidebar_state="collapsed",          # Sidebar beim Start eingeklappt
+)
+
+# Versteckt die Streamlit-Sidebar per CSS-Injektion
+# Hilfsmittel: Claude – CSS-Injektion via unsafe_allow_html wurde im Unterricht nicht behandelt
+st.markdown("<style>[data-testid='stSidebar'],[data-testid='collapsedControl']{display:none!important}</style>", unsafe_allow_html=True)
+
+# Zeigt die Navigationsleiste an
+show_navbar()
+
+# Injiziert benutzerdefiniertes CSS für Schriftarten und Styling der gesamten Seite
+# Hilfsmittel: Claude – Google Fonts Import, CSS-Selektoren und unsafe_allow_html
+#    wurden im Unterricht nicht behandelt
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+html, body, [class*="css"], .stMarkdown, .stText, h1, h2, h3, p, div {
+    font-family: 'Inter', sans-serif !important;
+}
+h1 { font-weight: 700 !important; letter-spacing: -0.02em !important; }
+h2 { font-weight: 600 !important; letter-spacing: -0.01em !important; }
+h3 { font-weight: 600 !important; }
+.stSelectbox label, .stDateInput label, .stSlider label {
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+    opacity: 0.7 !important;
+}
+hr { opacity: 0.15 !important; }
+/* Streamlit's automatischen "200MB per file" Text verstecken */
+[data-testid="stFileUploaderDropzoneInstructions"] { display: none !important; }
+</style>
+""", unsafe_allow_html=True)
+
+# Zeigt den Seitentitel und Untertitel an
+st.title("Prediction Tool")
+st.markdown("Enter your flight details to get a delay probability estimate.")
+st.markdown("---")
+
+# ── SESSION STATE für Boarding Pass Daten ────────────────────────────────────
+# st.session_state speichert Variablen über mehrere Streamlit-Reruns hinweg
+# Hilfsmittel: Claude – st.session_state ist ein Streamlit-Konzept und wurde im Unterricht nicht behandelt
+# Initialisiert alle Boarding-Pass-Variablen mit None/False falls sie noch nicht existieren
+if "bp_airline" not in st.session_state:    st.session_state.bp_airline    = None  # Airline-Code aus Boarding Pass
+if "bp_origin"  not in st.session_state:    st.session_state.bp_origin     = None  # Abflughafen-Code
+if "bp_dest"    not in st.session_state:    st.session_state.bp_dest       = None  # Zielflughafen-Code
+if "bp_date"    not in st.session_state:    st.session_state.bp_date       = None  # Flugdatum
+if "bp_hour"    not in st.session_state:    st.session_state.bp_hour       = None  # Abflugstunde
+if "bp_scanned" not in st.session_state:    st.session_state.bp_scanned    = False # Boolean: ob bereits gescannt
+
+# Definiert eine Funktion zum Zurücksetzen aller Boarding-Pass-Daten im session_state
+def reset_boarding_pass():
+    """Setzt alle Boarding Pass Daten zurück, damit ein neuer Upload möglich ist."""
+    st.session_state.bp_airline = None
+    st.session_state.bp_origin  = None
+    st.session_state.bp_dest    = None
+    st.session_state.bp_date    = None
+    st.session_state.bp_hour    = None
+    st.session_state.bp_scanned = False  # Scannt-Flag zurücksetzen
+
+# ─────────────────────────────────────────────
+# EINGABE-FORMULAR
+# ─────────────────────────────────────────────
+# Zeigt die Unterüberschrift des Formulars
+st.subheader("Your Flight Details")
+
+# Holt alle Flughäfen als Dictionary (Name → Code) aus model/predict.py
+airport_options    = get_airport_list()
+# Erstellt separate Listen für Codes und Namen (für Index-Zugriff) (Unterrichtsinhalt: list())
+airport_codes_list = list(airport_options.values())
+airport_names_list = list(airport_options.keys())
+
+# Setzt den Standard-Index für den Abflughafen (Index 2 = DFW als Default)
+default_origin_idx = 2
+# Falls ein Abflughafen aus dem Boarding Pass vorhanden ist, dessen Index in der Liste suchen
+if st.session_state.bp_origin and st.session_state.bp_origin in airport_codes_list:
+    default_origin_idx = airport_codes_list.index(st.session_state.bp_origin)
+
+# Erstellt zwei nebeneinanderliegende Spalten mit grossem Abstand
+# Hilfsmittel: Claude – st.columns ist Streamlit-spezifisch und wurde im Unterricht nicht behandelt
+col1, col2 = st.columns(2, gap="large")
+
+with col1:
+    # Dropdown-Menü für den Abflughafen (zeigt Flughafennamen an)
+    origin_name = st.selectbox(
+        "Departure Airport",
+        options=airport_names_list,       # Liste aller Flughafennamen
+        index=default_origin_idx,         # Vorausgewählter Index (Standard oder aus Boarding Pass)
+    )
+    # Holt den entsprechenden Flughafen-Code (3-Buchstaben) zum ausgewählten Namen
+    origin_code = airport_options[origin_name]
+
+    # Holt alle verfügbaren Airlines als Dictionary (Name → Code)
+    airline_options    = get_airline_options()
+    airline_names_list = list(airline_options.keys())   # Liste der Airline-Namen
+    default_airline_idx = 0                             # Standard-Index: erste Airline
+    # Falls eine Airline aus dem Boarding Pass vorhanden ist, deren Index suchen
+    if st.session_state.bp_airline:
+        # For-Schleife mit enumerate: durchsucht alle Airline-Einträge nach dem Code (Unterrichtsinhalt)
+        for i, (name, code) in enumerate(airline_options.items()):
+            if code == st.session_state.bp_airline:
+                default_airline_idx = i
+                break                                   # Schleife beenden sobald gefunden
+    # Dropdown-Menü für die Airline
+    airline_name = st.selectbox("Airline", options=airline_names_list, index=default_airline_idx)
+    # Holt den Airline-Code (2-Buchstaben) zum ausgewählten Namen
+    airline_code = airline_options[airline_name]
+
+with col2:
+    # Holt alle möglichen Zielflughäfen (ohne den Abflughafen) als Dictionary
+    dest_options  = get_destination_options(origin_code)
+    dest_names    = list(dest_options.keys())    # Liste der Zielflughafen-Namen
+    dest_codes    = list(dest_options.values())  # Liste der Zielflughafen-Codes
+    default_dest_idx = 0                         # Standard-Index: erster Zielflughafen
+    # Falls ein Zielflughafen aus dem Boarding Pass vorhanden ist, dessen Index suchen
+    if st.session_state.bp_dest and st.session_state.bp_dest in dest_codes:
+        default_dest_idx = dest_codes.index(st.session_state.bp_dest)
+    # Dropdown-Menü für den Zielflughafen
+    dest_name = st.selectbox("Destination Airport", options=dest_names, index=default_dest_idx)
+    # Holt den Zielflughafen-Code zum ausgewählten Namen
+    dest_code = dest_options[dest_name]
+
+    # Setzt das Standard-Datum: entweder aus dem Boarding Pass oder das heutige Datum
+    default_date = st.session_state.bp_date if st.session_state.bp_date else date.today()
+    # Datums-Eingabefeld (Kalender-Widget); Minimum: 1. Januar 2020
+    flight_date  = st.date_input("Flight Date", value=default_date, min_value=date(2020, 1, 1))
+
+# Setzt die Standard-Abflugstunde: aus Boarding Pass oder 12 Uhr
+default_hour = st.session_state.bp_hour if st.session_state.bp_hour is not None else 12
+# Slider für die Abflugstunde (0–23 Uhr), zeigt Wert als "12:00" an
+dep_hour = st.slider("Departure Hour", min_value=0, max_value=23, value=default_hour, format="%d:00")
+
+# ── BOARDING PASS UPLOAD ──────────────────────────────────────────────────────
+# Zeigt eine dekorative Trennlinie mit Text via HTML/CSS
+# Hilfsmittel: Claude – inline HTML/CSS via st.markdown wurde im Unterricht nicht behandelt
+st.markdown("""
+<div style="display:flex;align-items:center;gap:1rem;margin:1.5rem 0 0.5rem;">
+    <div style="flex:1;height:1px;background:rgba(255,255,255,0.15);"></div>
+    <div style="font-size:0.75rem;color:#9ca3af;letter-spacing:0.08em;white-space:nowrap;">
+        or upload your boarding pass instead of selecting everything
+    </div>
+    <div style="flex:1;height:1px;background:rgba(255,255,255,0.15);"></div>
+</div>
+""", unsafe_allow_html=True)
+
+# ── Bekannte Werte für Validierung ───────────────────────────────────────────
+# Liste aller unterstützten Flughafen-Codes (wird zur Validierung extrahierter Werte verwendet)
+KNOWN_AIRPORTS = ["ATL","ORD","DFW","DEN","LAX","SFO","PHX","IAH","LAS","MSP","MCO","SEA","DTW","BOS","EWR","JFK"]
+# Liste aller unterstützten Airline-Codes (wird zur Validierung extrahierter Werte verwendet)
+KNOWN_AIRLINES = ["AA","AS","B6","DL","F9","HA","MQ","OO","UA","WN"]
+
+# Wenn bereits ein Boarding Pass gescannt wurde: Reset-Button anzeigen statt Upload-Widget
+if st.session_state.bp_scanned:
+    # Zwei Spalten: breite Spalte für Erfolgsmeldung, schmale Spalte für Reset-Button
+    scan_col, reset_col = st.columns([3, 1])
+    with scan_col:
+        # Grüne Erfolgsmeldung anzeigen
+        st.success("Boarding pass scanned! Adjust the fields above if needed, then press Predict Delay.")
+    with reset_col:
+        # Button zum Zurücksetzen des Scans
+        if st.button("Scan new boarding pass", use_container_width=True):
+            reset_boarding_pass()   # Alle Boarding-Pass-Daten im session_state löschen
+            st.rerun()              # Seite neu laden damit das Upload-Widget wieder erscheint
+else:
+    # Datei-Upload-Widget: akzeptiert PNG, JPG, JPEG und PDF bis 5MB
+    # Hilfsmittel: Claude – st.file_uploader ist Streamlit-spezifisch und wurde im Unterricht nicht behandelt
+    uploaded_file = st.file_uploader(
+        "📎 Drop your boarding pass here (photo or PDF, max. 5MB) — we'll fill in the details automatically",
+        type=["png", "jpg", "jpeg", "pdf"],   # Erlaubte Dateitypen (Liste von Strings)
+        label_visibility="visible",           # Label des Upload-Widgets sichtbar anzeigen
+    )
+
+    # Falls eine Datei hochgeladen wurde (uploaded_file ist nicht None)
+    if uploaded_file is not None:
+        # Zeigt einen Ladekreis mit Statusmeldung während der Verarbeitung
+        # Hilfsmittel: Claude – st.spinner ist Streamlit-spezifisch
+        with st.spinner("Analyzing boarding pass with AI..."):
+            # try/except: fängt Fehler bei der API-Verarbeitung ab (Unterrichtsinhalt: try/except)
+            try:
+                # Importiert anthropic für den Claude-API-Aufruf
+                # Hilfsmittel: Claude – anthropic-Library und API-Nutzung wurden im Unterricht nicht behandelt
+                import anthropic
+                # Importiert base64 für die Kodierung der Datei als Text
+                # Hilfsmittel: Claude – base64-Encoding wurde im Unterricht nicht behandelt
+                import base64
+                # Importiert PIL.Image für die Bildkomprimierung
+                # Hilfsmittel: Claude – PIL/Pillow wurde im Unterricht nicht behandelt
+                from PIL import Image
+                # Importiert io für In-Memory-Dateioperationen
+                import io
+
+                # Liest die hochgeladene Datei als Bytes-Objekt
+                file_bytes = uploaded_file.read()
+                # Bestimmt den MIME-Typ: PDF oder Bild-MIME-Typ aus dem Upload-Objekt
+                media_type = "application/pdf" if uploaded_file.type == "application/pdf" else uploaded_file.type
+
+                # Bilder über 4MB werden komprimiert bevor sie an die Claude API geschickt werden
+                # (API-Limit: 5MB — Streamlit erlaubt bis 200MB, daher brauchen wir diese Zwischenstufe)
+                # Hilfsmittel: Claude – Bildkomprimierung mit PIL wurde im Unterricht nicht behandelt
+                if media_type != "application/pdf" and len(file_bytes) > 4 * 1024 * 1024:
+                    # Öffnet das Bild aus dem Byte-Stream
+                    img = Image.open(io.BytesIO(file_bytes))
+                    # Konvertiert zu RGB (entfernt Transparenz-Kanal falls PNG vorhanden)
+                    img = img.convert("RGB")
+                    buffer = io.BytesIO()        # Erstellt einen leeren In-Memory-Puffer
+                    quality = 85                 # Start-Komprimierungsqualität (85%)
+                    img.save(buffer, format="JPEG", quality=quality)
+                    # While-Schleife: reduziert Qualität weiter bis Datei unter 4MB (Unterrichtsinhalt: while)
+                    while buffer.tell() > 4 * 1024 * 1024 and quality > 30:
+                        buffer = io.BytesIO()          # Puffer zurücksetzen
+                        quality -= 15                  # Qualität um 15% reduzieren
+                        img.save(buffer, format="JPEG", quality=quality)
+                    file_bytes = buffer.getvalue()     # Komprimierte Bytes aus Puffer lesen
+                    media_type = "image/jpeg"          # MIME-Typ auf JPEG aktualisieren
+
+                # Kodiert die Datei-Bytes als Base64-String (für API-Übertragung)
+                b64 = base64.standard_b64encode(file_bytes).decode("utf-8")
+
+                # Erstellt einen Anthropic-Client mit dem gespeicherten API-Key aus den Streamlit-Secrets
+                # Hilfsmittel: Claude – anthropic.Anthropic() und st.secrets wurden im Unterricht nicht behandelt
+                client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
+
+                # Erstellt den Prompt-Text für Claude mit den bekannten Flughafen- und Airline-Codes
+                # f-String mit join() um die Listen als kommaseparierte Strings einzufügen (Unterrichtsinhalt: f-String, join)
+                prompt = f"""You are analyzing a boarding pass image. Extract the flight information carefully.
+
+The app only supports these airports: {', '.join(KNOWN_AIRPORTS)}
+The app only supports these airline codes: {', '.join(KNOWN_AIRLINES)}
+
+Return ONLY a valid JSON object with these exact keys (no other text, no markdown):
+{{
+  "airline_code": "2-letter IATA airline code from the list above, or null if not found/not supported",
+  "origin": "3-letter IATA airport code from the list above, or null if not found/not supported",
+  "destination": "3-letter IATA airport code from the list above, or null if not found/not supported",
+  "date": "departure date in YYYY-MM-DD format, or null if not found",
+  "departure_hour": departure hour as integer 0-23 (look for scheduled departure time), or null if not found
+}}
+
+Look carefully at all text on the boarding pass. Flight numbers, gate info, and barcodes are not needed."""
+
+                # Inhalt je nach Dateityp (PDF oder Bild) unterschiedlich aufbauen
+                # Hilfsmittel: Claude – Aufbau des content-Arrays für die Anthropic API wurde im Unterricht nicht behandelt
+                if media_type == "application/pdf":
+                    # PDF: als document-Typ mit base64-Quelle übergeben
+                    content = [
+                        {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": b64}},
+                        {"type": "text", "text": prompt}
+                    ]
+                else:
+                    # Bild: als image-Typ mit base64-Quelle übergeben
+                    content = [
+                        {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
+                        {"type": "text", "text": prompt}
+                    ]
+
+                # Sendet die Anfrage an die Claude-API und wartet auf die Antwort
+                # Hilfsmittel: Claude – client.messages.create() ist die Anthropic API und wurde im Unterricht nicht behandelt
+                response = client.messages.create(
+                    model="claude-opus-4-5",   # Verwendetes Modell (String)
+                    max_tokens=400,            # Maximale Antwortlänge in Tokens
+                    messages=[{"role": "user", "content": content}]  # Nachrichtenarray mit Inhalt
+                )
+
+                # Holt den Antwort-Text aus dem ersten Content-Block der API-Antwort
+                # Entfernt Backtick-Blöcke falls Claude diese trotzdem schreibt, dann JSON parsen
+                raw       = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+                # json.loads: wandelt den JSON-String in ein Python-Dictionary um
+                extracted = json.loads(raw)
+
+                # Extrahiert die drei Codes aus dem Dictionary mit .get() (Unterrichtsinhalt: Dictionary .get())
+                airline_raw = extracted.get("airline_code")
+                origin_raw  = extracted.get("origin")
+                dest_raw    = extracted.get("destination")
+
+                # Validiert extrahierte Werte: nur bekannte Codes in den session_state übernehmen
+                # Ternary-Operator: Wert übernehmen wenn in der bekannten Liste, sonst None (Unterrichtsinhalt)
+                st.session_state.bp_airline = airline_raw if airline_raw in KNOWN_AIRLINES else None
+                st.session_state.bp_origin  = origin_raw  if origin_raw  in KNOWN_AIRPORTS else None
+                st.session_state.bp_dest    = dest_raw    if dest_raw    in KNOWN_AIRPORTS else None
+                st.session_state.bp_hour    = extracted.get("departure_hour")  # Abflugstunde (Integer oder None)
+                st.session_state.bp_scanned = True                             # Scan-Flag auf True setzen
+
+                # Datum parsen falls vorhanden (verschachtelter try/except für Datums-Parsing)
+                if extracted.get("date"):
+                    try:
+                        # Wandelt den Datumsstring "YYYY-MM-DD" in ein date-Objekt um (Unterrichtsinhalt: datetime.strptime)
+                        st.session_state.bp_date = datetime.strptime(extracted["date"], "%Y-%m-%d").date()
+                    except Exception:
+                        pass   # Falls Datum nicht parsbar: einfach überspringen
+
+                # Prüft welche Felder nicht extrahiert werden konnten und sammelt sie in einer Liste
+                missing = []
+                if not st.session_state.bp_airline: missing.append("airline")
+                if not st.session_state.bp_origin:  missing.append("departure airport")
+                if not st.session_state.bp_dest:    missing.append("destination airport")
+
+                # Falls Felder fehlen: Warnmeldung mit den fehlenden Feldern anzeigen
+                if missing:
+                    st.warning(f"Could not extract: {', '.join(missing)}. Please select manually above.")
+                else:
+                    # Alle Felder erfolgreich extrahiert: Erfolgsmeldung
+                    st.success("Boarding pass scanned! Fields updated above — press Predict Delay.")
+
+                # Lädt die Seite neu, damit die Dropdowns mit den neuen Werten befüllt werden
+                st.rerun()
+
+            except Exception as e:
+                # Falls ein Fehler auftritt (z.B. API-Fehler, ungültiges JSON):
+                # Warnmeldung mit dem Fehlertext anzeigen, manuelle Eingabe vorschlagen
+                st.warning(f"Could not scan boarding pass automatically: {e}. Please fill in the details manually.")
+
+# Definiert einen Dialog (Modal-Fenster) "About Us" mit @st.dialog-Decorator
+# Hilfsmittel: Claude – @st.dialog ist ein Streamlit-Decorator und wurde im Unterricht nicht behandelt
+@st.dialog("About Us")
+def show_about():
+    # Zeigt Team- und Projektinformationen als Markdown-Text im Dialog an
+    st.markdown("""
+    **CatchYourFlight** is a student project developed at the University of St. Gallen.
+
+    Our goal is to help travelers make smarter booking decisions by deriving historical flight delay data from the 16 busiest US airports.
+
+    ---
+    **Team**
+    - Data Research · Nils Wälti
+    - Machine Learning · Benjamin Marbacher & Silas Marty
+    - Meteo API · Stefanie Seiler
+    - Website Design · Sára Jankovičová
+
+    ---
+    **Data Source**
+    Historical flight data from 16 US airports (ATL, BOS, DEN, DFW, DTW, EWR, IAH, JFK, LAS, LAX, MCO, MSP, ORD, PHX, SEA, SFO) sourced from the Bureau of Transportation Statistics (BTS). Weather data via Open-Meteo API.
+    """)
+
+# ── PREDICT BUTTON ────────────────────────────────────────────────────────────
+# Horizontale Trennlinie vor dem Button
+st.markdown("---")
+# Erstellt den primären Vorhersage-Button (blau, volle Breite)
+predict_btn = st.button("✈ Predict Delay", type="primary", use_container_width=True)
+
+# Falls der Predict-Button gedrückt wurde
+if predict_btn:
+    # Formatiert das Flugdatum als String im Format "YYYY-MM-DD" (Unterrichtsinhalt: strftime)
+    date_str = flight_date.strftime("%Y-%m-%d")
+    # Zeigt Ladekreis während Wetterdaten und Vorhersage berechnet werden
+    with st.spinner("Loading weather & running prediction..."):
+        try:
+            # Lädt die Wetterdaten für den Abflughafen und das gewählte Datum
+            weather_df = get_weather(origin_code, date_str)
+        except Exception as e:
+            # Falls Wetterdaten nicht geladen werden können: Fehlermeldung und Abbruch
+            st.error(f"Could not load weather data: {e}")
+            st.stop()   # Beendet die weitere Ausführung des Skripts
+
+        # Ruft die Vorhersagefunktion aus model/predict.py mit allen Eingaben auf
+        result = predict_delay(
+            airline     = airline_code,   # Airline-Kürzel (String)
+            origin      = origin_code,    # Abflughafen-Code (String)
+            destination = dest_code,      # Zielflughafen-Code (String)
+            flight_date = flight_date,    # Flugdatum (date-Objekt)
+            dep_hour    = dep_hour,       # Abflugstunde (Integer)
+            weather_df  = weather_df,     # Wetter-DataFrame
+        )
+
+    # Falls das Ergebnis einen Fehler enthält: Fehlermeldung und Abbruch
+    if "error" in result:
+        st.error(result["error"])
+        st.stop()
+
+    # Extrahiert die benötigten Werte aus dem Ergebnis-Dictionary (Unterrichtsinhalt: Dictionary-Zugriff)
+    risk_color = result["risk_color"]              # Hex-Farbe für die Risikoampel
+    prob_pct   = result["delay_probability_pct"]   # Verspätungswahrscheinlichkeit als Prozent-String
+    category   = result["display_category"]        # Angezeigte Verspätungskategorie (String)
+    risk_level = result["risk_level"]              # Risikolevel: "Low", "Medium" oder "High"
+    factors    = result["top_factors"]             # Liste der Einflussfaktoren
+
+    # Dictionary: Wetterbedingung → Emoji + Text für die Anzeige
+    condition_icons = {
+        "Heavy Snow":  "Heavy Snow", "Light Snow":  "🌨️ Light Snow",
+        "Heavy Rain":  "Heavy Rain", "Light Rain":  "🌦️ Light Rain",
+        "Strong Wind": "Strong Wind", "Overcast":   "☁️ Overcast",
+        "Good":        "Good",
+    }
+
+    st.markdown("---")
+
+    # ── KPI CARDS ─────────────────────────────────────────────────────────────
+    # Rendert drei nebeneinanderliegende KPI-Karten via HTML/CSS Grid
+    # Hilfsmittel: Claude – CSS Grid und HTML-Karten wurden im Unterricht nicht behandelt
+    st.markdown(f"""
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;margin-bottom:2rem;">
+<div style="background:#ffffff;border:1px solid #e5e7eb;border-top:3px solid {risk_color};border-radius:0 0 12px 12px;padding:1.75rem 1.5rem;text-align:center;">
+<div style="font-size:0.65rem;color:#9ca3af;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.75rem;">Delay Probability</div>
+<div style="font-size:3rem;font-weight:700;color:{risk_color};line-height:1;margin-bottom:0.25rem;">{prob_pct}</div>
+<div style="font-size:0.8rem;color:#9ca3af;">chance of delay</div>
+</div>
+<div style="background:#ffffff;border:1px solid #e5e7eb;border-top:3px solid #6366F1;border-radius:0 0 12px 12px;padding:1.75rem 1.5rem;text-align:center;">
+<div style="font-size:0.65rem;color:#9ca3af;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.75rem;">Expected Delay</div>
+<div style="font-size:2rem;font-weight:700;color:#111111;line-height:1.2;margin-bottom:0.25rem;">{category}</div>
+<div style="font-size:0.8rem;color:#9ca3af;">most likely category</div>
+</div>
+<div style="background:#ffffff;border:1px solid #e5e7eb;border-top:3px solid {risk_color};border-radius:0 0 12px 12px;padding:1.75rem 1.5rem;text-align:center;">
+<div style="font-size:0.65rem;color:#9ca3af;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.75rem;">Risk Level</div>
+<div style="display:inline-block;background:{risk_color}20;color:{risk_color};font-weight:700;font-size:1.4rem;padding:0.35rem 1.25rem;border-radius:20px;margin-top:0.25rem;">{risk_level}</div>
+<div style="font-size:0.8rem;color:#9ca3af;margin-top:0.5rem;">{origin_code} → {dest_code}</div>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+    # ── WEATHER ───────────────────────────────────────────────────────────────
+    # Filtert den weather_df nach der Abflugstunde und nimmt die erste Zeile
+    weather_at_hour = weather_df[weather_df["hour"] == dep_hour].iloc[0]
+    # Klassifiziert die Wetterbedingung (z.B. "Heavy Rain") basierend auf den Wetterwerten
+    condition       = classify_weather_condition(weather_at_hour)
+    # Holt das entsprechende Emoji+Label aus dem Dictionary (Fallback: Rohtext)
+    condition_label = condition_icons.get(condition, condition)
+
+    # Rendert die Wetterkarte für die Abflugstunde via HTML/CSS
+    # Hilfsmittel: Claude – HTML-Wetterkarte wurde im Unterricht nicht behandelt
+    st.markdown(f"""
+<div style="background:#f8f9fa;border:1px solid #e5e7eb;border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;">
+<div style="font-size:0.65rem;color:#9ca3af;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1rem;">Weather at Departure · {dep_hour:02d}:00</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem;">
+<div style="text-align:center;"><div style="font-size:1.5rem;">🌡️</div>
+<div style="font-size:0.7rem;color:#9ca3af;margin:0.25rem 0;">Temperature</div>
+<div style="font-weight:600;color:#111111;">{weather_at_hour['temperature']} °C</div></div>
+<div style="text-align:center;"><div style="font-size:1.5rem;">🌧️</div>
+<div style="font-size:0.7rem;color:#9ca3af;margin:0.25rem 0;">Precipitation</div>
+<div style="font-weight:600;color:#111111;">{weather_at_hour['precipitation']} mm</div></div>
+<div style="text-align:center;"><div style="font-size:1.5rem;">💨</div>
+<div style="font-size:0.7rem;color:#9ca3af;margin:0.25rem 0;">Wind Speed</div>
+<div style="font-weight:600;color:#111111;">{weather_at_hour['windspeed']} km/h</div></div>
+<div style="text-align:center;"><div style="font-size:1.5rem;">☁️</div>
+<div style="font-size:0.7rem;color:#9ca3af;margin:0.25rem 0;">Condition</div>
+<div style="background:{risk_color}20;color:{risk_color};font-weight:600;font-size:0.8rem;padding:0.2rem 0.5rem;border-radius:10px;display:inline-block;">{condition_label}</div></div>
+</div></div>
+""", unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # ── FULL DAY OVERVIEW ─────────────────────────────────────────────────────
+    # Prüft ob alle Temperaturwerte gleich sind (= nur Tagesdurchschnitt vorhanden, keine Stundendaten)
+    is_daily_avg = weather_df["temperature"].nunique() == 1
+    if not is_daily_avg:
+        # Unterüberschrift für die stündliche Wetterübersicht
+        st.subheader("Full Day Weather Overview")
+
+        # Dictionary: Wetterbedingung → Emoji für die Stundenkarten
+        cond_emoji = {
+            "Heavy Snow": "❄️", "Light Snow": "🌨️",
+            "Heavy Rain": "🌧️", "Light Rain": "🌦️",
+            "Strong Wind": "💨", "Overcast": "☁️", "Good": "☀️",
+        }
+
+        # Leerer String, der schrittweise mit HTML-Karten befüllt wird
+        cards_html = ""
+        # For-Schleife: iteriert über alle Zeilen des weather_df (jede Zeile = eine Stunde)
+        for _, row in weather_df.iterrows():
+            h      = int(row["hour"])                              # Stunde als Integer
+            is_dep = h == dep_hour                                 # Boolean: ist dies die Abflugstunde?
+            cond   = classify_weather_condition(row)               # Wetterbedingung für diese Stunde
+            emoji  = cond_emoji.get(cond, "🌤️")                   # Passendes Emoji (Fallback: 🌤️)
+            prcp   = float(row["precipitation"] or 0)             # Niederschlag (None → 0.0)
+            wind   = float(row["windspeed"] or 0)                 # Windgeschwindigkeit (None → 0.0)
+            temp   = float(row["temperature"] or 0)               # Temperatur (None → 0.0)
+
+            # Abflugstunde erhält hervorgehobenes Design (Gradient-Hintergrund)
+            if is_dep:
+                card_style = f"background:linear-gradient(160deg,{risk_color} 0%,#6366f1 100%);border:none;box-shadow:0 4px 14px {risk_color}55;"
+                text_main  = "color:#ffffff;"
+                text_sub   = "color:rgba(255,255,255,0.75);"
+                hour_style = "color:rgba(255,255,255,0.85);font-weight:700;"
+                dot        = f'<div style="width:6px;height:6px;border-radius:50%;background:#fff;margin:0 auto 4px;opacity:0.9;"></div>'
+            else:
+                # Alle anderen Stunden: helles, dezentes Design
+                card_style = "background:#f8fafc;border:1px solid #e5e7eb;"
+                text_main  = "color:#111111;"
+                text_sub   = "color:#9ca3af;"
+                hour_style = "color:#6b7280;font-weight:500;"
+                dot        = ""
+
+            # Hängt die HTML-Karte für diese Stunde an den cards_html-String an (f-String – Unterrichtsinhalt)
+            cards_html += f"""<div style="flex:0 0 auto;width:80px;border-radius:16px;padding:0.9rem 0.5rem;text-align:center;{card_style}">
+{dot}
+<div style="font-size:0.7rem;letter-spacing:0.04em;{hour_style}margin-bottom:0.4rem;">{h:02d} h</div>
+<div style="font-size:1.5rem;font-weight:700;{text_main}margin-bottom:0.2rem;">{temp:.0f}°</div>
+<div style="font-size:1.6rem;margin-bottom:0.4rem;">{emoji}</div>
+<div style="font-size:0.7rem;{text_sub}margin-bottom:0.15rem;">💧 {prcp:.0f}%</div>
+<div style="font-size:0.7rem;{text_sub}">💨 {wind:.0f}</div>
+</div>"""
+
+        # Rendert alle Stundenkarten in einem horizontal scrollbaren Container
+        st.markdown(f"""
+<div style="background:#f1f5f9;border-radius:20px;padding:1.25rem 1rem;">
+<div style="display:flex;gap:0.5rem;overflow-x:auto;padding-bottom:0.25rem;scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent;">
+{cards_html}
+</div>
+</div>
+""", unsafe_allow_html=True)
+    else:
+        # Falls nur Tagesdurchschnitt vorhanden: Hinweis anzeigen
+        st.caption("📅 Weather based on historical daily average (same day, last 3 years) — hourly breakdown not available for dates beyond 16 days.")
+
+    st.markdown("---")
+
+    # ── CONTRIBUTING FACTORS ──────────────────────────────────────────────────
+    # Unterüberschrift für den Einflussfaktoren-Abschnitt
+    st.subheader("Contributing Factors")
+    if factors:
+        # Dictionary: Impact-Level → Hex-Farbe für die farbigen Punkte
+        _impact_colors = {"high": "#EF4444", "medium": "#F59E0B", "low": "#10B981"}
+        # Dictionary: Impact-Level → lesbarer Label-Text
+        _impact_labels = {"high": "high impact", "medium": "medium", "low": "low"}
+        cells = ""   # Leerer String für die HTML-Zellen
+        # For-Schleife: erstellt für jeden Faktor eine HTML-Karte (Unterrichtsinhalt: for-Schleife)
+        for f in factors:
+            color = _impact_colors.get(f["impact"], "#9ca3af")   # Farbe für diesen Impact-Level
+            label = _impact_labels.get(f["impact"], f["impact"]) # Lesbarer Label-Text
+            # Hängt die HTML-Karte für diesen Faktor an cells an
+            cells += f"""<div style="background:#f8f9fa;border:1px solid #e5e7eb;border-radius:10px;padding:0.85rem 1.1rem;display:flex;align-items:center;gap:0.75rem;">
+<div style="width:10px;height:10px;border-radius:50%;background:{color};flex-shrink:0;"></div>
+<div><span style="font-size:0.9rem;color:#111111;font-weight:500;">{f['label']}</span>
+<span style="font-size:0.78rem;color:#9ca3af;margin-left:0.4rem;">({label})</span></div></div>"""
+        # Rendert alle Faktor-Karten in einem 2-spaltigen CSS-Grid
+        st.markdown(f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.5rem;">{cells}</div>', unsafe_allow_html=True)
+
+    # Zeigt die verwendeten Modell-Eingaben als Caption-Text an
+    w = result["weather_used"]
+    st.caption(f"Model inputs: TEMP={w['TEMP']}°C · PRCP={w['PRCP_H']}mm · SNOW={w['SNOW_H']}cm · WIND={round(w['WIND'],1)}m/s · CLOUD={w['CLOUD']}% · Trained on 2015 US flight data (XGBoost, 66.8% accuracy)")
+
+# ── About Us Button ───────────────────────────────────────────────────────────
+# Fügt einen vertikalen Abstand via HTML-Zeilenumbruch ein
+st.markdown("<br>", unsafe_allow_html=True)
+# Erstellt drei Spalten: links und rechts leer, Mitte für den Button (Unterrichtsinhalt: Tupel-Unpacking)
+_, btn_col, _ = st.columns([3, 1, 3])
+with btn_col:
+    # Button zum Öffnen des "About Us"-Dialogs (volle Spaltenbreite)
+    if st.button("About Us", use_container_width=True):
+        show_about()   # Öffnet den @st.dialog-Modal
+
+# ── Footer ────────────────────────────────────────────────────────────────────
+# Rendert einen zentrierten Footer-Text via HTML/CSS
+# ⚠️ Hilfsmittel: Claude – HTML-Footer wurde im Unterricht nicht behandelt
+st.markdown("""
+<div style="border-top:1px solid #e0e0e0; padding-top:1rem; text-align:center;
+    color:#aaaaaa; font-size:0.72rem;">
+    Computer Science Project · University of St. Gallen · CatchYourFlight · 2026
+</div>
+""", unsafe_allow_html=True)
