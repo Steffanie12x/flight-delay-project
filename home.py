@@ -146,7 +146,7 @@ st.markdown("""
     line-height: 1.7;
     border-radius: 0 8px 8px 0;
 ">
-    <em>When planning a trip everybody crosses the issue of planning the right amount of time at the airport — neither too much nor too less. CatchYourFlight solves this problem by estimating the delay probability for your specific flight from the 16 busiest US airports by deriving historical delay patterns.</em>
+    <em>When planning a trip everybody crosses the issue of planning the right amount of buffer time at the airport. CatchYourFlight solves this problem by estimating the delay probability for your specific flight from the 16 busiest US airports by deriving historical delay patterns.</em>
 </div>
 """, unsafe_allow_html=True)
 
@@ -181,8 +181,7 @@ def show_about():
     st.markdown("""
     **CatchYourFlight** is a student project developed at the University of St. Gallen.
 
-    Our goal is to make flight delay data from the 16 busiest US airports accessible and understandable —
-    helping travelers make smarter booking decisions.
+    Our goal is to help travelers make smarter booking decisions by deriving historical flight delay data from the 16 busiest US airports.
 
     ---
     **Team**
@@ -328,6 +327,6 @@ with btn_col:
 st.markdown("""
 <div style="border-top:1px solid #e0e0e0; padding-top:1rem; text-align:center;
     color:#aaaaaa; font-size:0.72rem;">
-    CS Project · University of St. Gallen · US Airport Flight Data · 2026 · Source: BTS 2015
+    Computer Science Project · University of St. Gallen · CatchYourFlight · 2026
 </div>
 """, unsafe_allow_html=True)
