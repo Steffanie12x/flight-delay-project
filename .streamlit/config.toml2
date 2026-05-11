@@ -1,1 +1,49 @@
+"""
+config.toml
 
+Konfigurationsdatei für die Streamlit-Benutzeroberfläche.
+Legt das visuelle Erscheinungsbild der App fest: Sidebar-Verhalten,
+Farbschema, Hintergrundfarben, Schriftart und Textfarbe.
+
+Autoren: stefanie seiler, 2 people
+Datum:   13 hours ago (Commit 74fe2d0)
+
+Quellen:
+- Claude (claude.ai): Aufbau und Struktur einer config.toml für Streamlit,
+  TOML-Syntax sowie die verfügbaren Theme-Parameter wurden im
+  CS-Unterricht nicht behandelt.
+"""
+
+# Abschnitt "ui" – Einstellungen für die Benutzeroberfläche
+[ui]
+# Blendet die seitliche Navigationsleiste (Sidebar) aus.
+# true = Sidebar wird versteckt, false = Sidebar wird angezeigt.
+#  Hilfsmittel: Claude – hideSidebarNav ist ein Streamlit-spezifischer
+#    Parameter und wurde im Unterricht nicht behandelt.
+hideSidebarNav = true
+
+# Abschnitt "theme" – Einstellungen für das visuelle Design der App
+#  Hilfsmittel: Claude – das Streamlit Theme-System und TOML-Syntax
+#    wurden im Unterricht nicht behandelt.
+[theme]
+# Legt das Basis-Farbschema fest. "light" = helles Design (weisser Hintergrund)
+base                     = "light"
+
+# Primärfarbe für interaktive Elemente (Buttons, Links etc.) als Hex-Farbcode
+# #3B82F6 = mittleres Blau
+primaryColor             = "#3B82F6"
+
+# Haupthintergrundfarbe der App als Hex-Farbcode
+# #ffffff = reines Weiss
+backgroundColor          = "#ffffff"
+
+# Hintergrundfarbe für sekundäre Bereiche (z.B. Sidebar, Inputs) als Hex-Farbcode
+# #EFF6FF = sehr helles Blau
+secondaryBackgroundColor = "#EFF6FF"
+
+# Farbe des Textes in der gesamten App als Hex-Farbcode
+# #111111 = fast schwarz
+textColor                = "#111111"
+
+# Schriftart der App. "sans serif" = serifenlose Schrift (z.B. Arial, Helvetica)
+font                     = "sans serif"
