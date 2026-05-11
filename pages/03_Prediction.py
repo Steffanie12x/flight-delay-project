@@ -435,7 +435,7 @@ if predict_btn:
         st.markdown(f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.5rem;">{cells}</div>', unsafe_allow_html=True)
 
     w = result["weather_used"]
-    st.caption(f"Model inputs: TEMP={w['TEMP']}°C · PRCP={w['PRCP_H']}mm · SNOW={w['SNOW_H']}cm · WIND={round(w['WIND'],1)}m/s · CLOUD={w['CLOUD']}%")
+
 
 # ── About Us Button ───────────────────────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
