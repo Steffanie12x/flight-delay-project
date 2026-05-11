@@ -1,1 +1,41 @@
+"""
+app.py
 
+Einstiegspunkt der CatchYourFlight Streamlit-App.
+Definiert die Navigation zwischen den drei Seiten der App
+(Home, Dashboard, Prediction) und startet die ausgewählte Seite.
+Die Navigationsleiste ist versteckt (position="hidden"), da eine
+eigene Navbar in utils/navbar.py verwendet wird.
+
+Autoren: stefanie seiler, 2 people
+Datum:   14 hours ago (Commit 1c8473a)
+
+Quellen:
+- Claude (claude.ai): st.navigation() und st.Page() sind Streamlit-
+  spezifische Funktionen und wurden im Unterricht nicht behandelt.
+"""
+
+# Importiert Streamlit für die Web-App-Oberfläche
+# Hilfsmittel: Claude – Streamlit wurde im Unterricht nicht behandelt
+import streamlit as st
+
+# Erstellt das Navigations-Objekt mit drei Seiten
+# st.navigation() und st.Page() sind Streamlit-spezifisch
+# Hilfsmittel: Claude – st.navigation() und st.Page() wurden im Unterricht nicht behandelt
+pg = st.navigation(
+    [
+        # Startseite: home.py wird als Standard-Seite gesetzt (default=True)
+        st.Page("home.py",                title="Home",       default=True),
+        # Dashboard-Seite mit den Verspätungsstatistiken
+        st.Page("pages/01_Dashboard.py",  title="Dashboard"),
+        # Vorhersage-Seite mit dem ML-Modell
+        st.Page("pages/03_Prediction.py", title="Prediction"),
+    ],
+    # position="hidden": blendet die automatische Streamlit-Navigationsleiste aus,
+    # da eine eigene benutzerdefinierte Navbar (utils/navbar.py) verwendet wird
+    position="hidden",
+)
+
+# Führt die aktuell ausgewählte Seite aus (lädt und rendert den entsprechenden Python-Code)
+# Hilfsmittel: Claude – pg.run() ist Streamlit-spezifisch und wurde im Unterricht nicht behandelt
+pg.run()
