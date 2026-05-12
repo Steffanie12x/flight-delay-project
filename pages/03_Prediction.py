@@ -38,52 +38,12 @@ h3 { font-weight: 600 !important; }
 hr { opacity: 0.15 !important; }
 /* Streamlit's automatischen "200MB per file" Text verstecken */
 [data-testid="stFileUploaderDropzoneInstructions"] { display: none !important; }
-/* Hero-Text weiß (überschreibt die globale schwarz-Regel aus navbar.py) */
-.hero-text h1, .hero-text p, .hero-text div, .hero-text span {
-    color: #ffffff !important;
-}
 </style>
 """, unsafe_allow_html=True)
 
-import base64, pathlib
-_hero_b64 = base64.b64encode(pathlib.Path("hero.png").read_bytes()).decode()
-_hero_src = f"data:image/png;base64,{_hero_b64}"
-st.markdown(f"""
-<div style="
-    position: relative;
-    overflow: hidden;
-    margin: -1rem -4rem 2.5rem -4rem;
-    height: 340px;
-">
-    <img src="{_hero_src}" style="
-        position: absolute; top: 0; left: 0;
-        width: 100%; height: 100%;
-        object-fit: cover;
-        object-position: center 40%;
-    "/>
-    <div style="
-        position: absolute; top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: linear-gradient(90deg, rgba(5,10,30,0.45) 40%, rgba(5,10,30,0.1) 100%);
-    "></div>
-    <div class="hero-text" style="
-        position: relative; z-index: 2;
-        padding: 3rem 3rem;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        color: #ffffff;
-    ">
-        <h1 style="font-size:3rem; font-weight:700; color:#ffffff; margin:0 0 0.75rem; line-height:1.1; letter-spacing:-0.02em;">
-            Prediction Tool
-        </h1>
-        <p style="color:#ffffff; font-size:1rem; margin:0 0 1.5rem; max-width:480px; line-height:1.6;">
-            Enter your flight details to get a delay probability estimate.
-        </p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+st.title("Prediction Tool")
+st.markdown("Enter your flight details to get a delay probability estimate.")
+st.markdown("---")
 
 # ── SESSION STATE für Boarding Pass Daten ────────────────────────────────────
 if "bp_airline" not in st.session_state:    st.session_state.bp_airline    = None
