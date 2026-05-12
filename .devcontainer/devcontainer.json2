@@ -1,1 +1,124 @@
-
+"""
+devcontainer.json
+ 
+Konfigurationsdatei für den GitHub Codespaces Dev Container des
+flight-delay-project. Sie legt die Entwicklungsumgebung fest:
+welches Docker-Image verwendet wird, welche Dateien beim Start
+geöffnet werden, welche VS Code Extensions installiert sind,
+wie Pakete installiert werden, wie die Streamlit-App gestartet
+wird und welcher Port nach aussen weitergeleitet wird.
+ 
+Abhängigkeiten:
+  - Docker / GitHub Codespaces
+  - Python 3.11 (Debian Bookworm)
+  - Streamlit (Port 8501)
+  - app.py (Einstiegspunkt der Applikation)
+  - requirements.txt / packages.txt (optionale Paketlisten)
+ 
+Autoren: Stefanie Seiler
+Datum:   Mai 2026
+ 
+Quellen:
+  - Claude (Sonnet): Struktur der Konfigurationsdatei, Shell-Befehlskette
+    in updateContentCommand, postAttachCommand, portsAttributes
+    (Konzepte nicht im Unterricht behandelt — mit Claude als Hilfsmittel erarbeitet)
+  - Unterricht / Dozent: Grundkonzept des Projekts, Verwendung von Python 3.11,
+    Streamlit als Framework
+"""
+{
+  // Name des Dev Containers — wird in GitHub Codespaces als Bezeichnung angezeigt
+  "name": "Python 3",
+ 
+  // Gibt an, welches vorgefertigte Docker-Image als Basis verwendet wird.
+  // "mcr.microsoft.com/devcontainers/python" ist ein offizielles Microsoft-Image.
+  // "1-3.11-bookworm" bedeutet: Python-Version 3.11 auf Debian Bookworm (= Debian 12).
+  // (Quelle: Claude — Docker-Images und Versionstags wurden nicht im Unterricht behandelt)
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
+ 
+  // "customizations" enthält plattformspezifische Anpassungen der Entwicklungsumgebung.
+  // (Quelle: Claude — JSON-Konfigurationsstruktur für Dev Containers nicht im Unterricht behandelt)
+  "customizations": {
+ 
+    // Einstellungen speziell für GitHub Codespaces
+    "codespaces": {
+ 
+      // Liste der Dateien, die beim Öffnen des Codespaces automatisch im Editor angezeigt werden.
+      // README.md gibt eine Übersicht über das Projekt; app.py ist der Einstiegspunkt der App.
+      "openFiles": [
+        "README.md",   // Projektdokumentation — wird als erstes Tab geöffnet
+        "app.py"       // Hauptdatei der Streamlit-Applikation — wird als zweites Tab geöffnet
+      ]
+    },
+ 
+    // Einstellungen speziell für VS Code (und den VS Code-basierten Codespaces-Editor)
+    "vscode": {
+ 
+      // Leeres settings-Objekt — keine benutzerdefinierten VS Code-Einstellungen gesetzt.
+      // Der Block ist vorhanden, damit die Struktur erweiterbar bleibt.
+      "settings": {},
+ 
+      // Liste der VS Code Extensions, die automatisch im Container installiert werden.
+      "extensions": [
+        "ms-python.python",          // Offizielle Python-Extension von Microsoft: Syntax-Highlighting,
+                                     // IntelliSense (Code-Vervollständigung), Linting und Debugging
+        "ms-python.vscode-pylance"   // Pylance: leistungsstarker Python-Sprachserver für verbesserte
+                                     // Typprüfung und Autovervollständigung (baut auf ms-python.python auf)
+      ]
+    }
+  },
+ 
+  // Shell-Befehlskette, die ausgeführt wird, sobald der Container-Inhalt aktualisiert/gestartet wurde.
+  // Der gesamte Wert ist ein einziger Shell-String mit mehreren durch ";" getrennten Befehlen.
+  // (Quelle: Claude — Shell-Skripting, apt-Paketverwaltung, pip und bedingte Ausführung mit
+  //  [ -f ... ] && ... wurden nicht im Unterricht behandelt)
+  "updateContentCommand": "[ -f packages.txt ] && sudo apt update && sudo apt upgrade -y && sudo xargs apt install -y <packages.txt; [ -f requirements.txt ] && pip3 install --user -r requirements.txt; pip3 install --user streamlit; echo '✅ Packages installed and Requirements met'",
+  //
+  // Erklärung der einzelnen Teile:
+  //   [ -f packages.txt ]               — prüft, ob die Datei packages.txt existiert
+  //   && sudo apt update                — aktualisiert die Liste der verfügbaren Systempakete
+  //   && sudo apt upgrade -y            — installiert alle vorhandenen System-Updates ohne Rückfrage
+  //   && sudo xargs apt install -y <packages.txt
+  //                                     — liest Paketnamen aus packages.txt und installiert diese
+  //   ; [ -f requirements.txt ]         — prüft unabhängig davon, ob requirements.txt existiert
+  //   && pip3 install --user -r requirements.txt
+  //                                     — installiert alle Python-Pakete aus requirements.txt
+  //   ; pip3 install --user streamlit   — installiert Streamlit (immer, unabhängig von requirements.txt)
+  //   ; echo '✅ ...'                   — gibt eine Erfolgsmeldung in der Konsole aus
+ 
+  // Befehl(e), die ausgeführt werden, sobald sich ein Benutzer mit dem laufenden Container verbindet.
+  // Hier wird die Streamlit-App gestartet.
+  // (Quelle: Claude — postAttachCommand und Streamlit-Startparameter nicht im Unterricht behandelt)
+  "postAttachCommand": {
+ 
+    // "server" ist ein selbst gewählter Name für diesen Hintergrundprozess.
+    // "streamlit run app.py" startet die Streamlit-Webanwendung aus der Datei app.py.
+    // "--server.enableCORS false"          — deaktiviert CORS-Schutz (nötig für Codespaces-Vorschau)
+    // "--server.enableXsrfProtection false"— deaktiviert XSRF-Token-Prüfung (nötig für Codespaces-Vorschau)
+    // (Quelle: Claude — CORS und XSRF sind Sicherheitskonzepte für Webserver, nicht im Unterricht behandelt)
+    "server": "streamlit run app.py --server.enableCORS false --server.enableXsrfProtection false"
+  },
+ 
+  // Konfiguration der Ports, die der Container nach aussen freigibt.
+  // (Quelle: Claude — Netzwerk-Port-Weiterleitung und Attribut-Struktur nicht im Unterricht behandelt)
+  "portsAttributes": {
+ 
+    // Einstellungen für Port 8501 — das ist der Standardport von Streamlit.
+    "8501": {
+ 
+      // Anzeigename des Ports in der Codespaces-Oberfläche
+      "label": "Application",
+ 
+      // Aktion bei automatischer Port-Erkennung:
+      // "openPreview" öffnet automatisch eine Vorschau der laufenden App im Editor
+      "onAutoForward": "openPreview"
+    }
+  },
+ 
+  // Liste der Ports, die explizit vom Container auf den lokalen Rechner (oder die Codespaces-Oberfläche)
+  // weitergeleitet werden. Port 8501 ist der Streamlit-Port — ohne diesen Eintrag wäre
+  // die App von aussen nicht erreichbar.
+  // (Quelle: Claude — Port-Forwarding-Konzept nicht im Unterricht behandelt)
+  "forwardPorts": [
+    8501   // Streamlit läuft standardmässig auf Port 8501; dieser Port wird weitergeleitet
+  ]
+}
