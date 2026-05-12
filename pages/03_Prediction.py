@@ -75,10 +75,10 @@ st.markdown(f"""
         justify-content: center;
         color: #ffffff;
     ">
-        <h1 style="font-size:3rem; font-weight:700; color:#ffffff; margin:0 0 0.75rem; line-height:1.1; letter-spacing:-0.02em; font-family:Helvetica Neue, Helvetica, Arial, sans-serif;">
+        <h1 style="font-size:3rem; font-weight:700; color:#ffffff; margin:0 0 0.75rem; line-height:1.1; letter-spacing:-0.02em;">
             Prediction Tool
         </h1>
-        <p style="color:#ffffff; font-size:1rem; margin:0; max-width:480px; line-height:1.6; font-family:Helvetica Neue, Helvetica, Arial, sans-serif;">
+        <p style="color:#ffffff; font-size:1rem; margin:0 0 1.5rem; max-width:480px; line-height:1.6;">
             Enter your flight details to get a delay probability estimate.
         </p>
     </div>
