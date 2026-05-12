@@ -45,7 +45,6 @@ hr { opacity: 0.15 !important; }
 /* Hero-Text weiß (überschreibt die globale schwarz-Regel aus navbar.py) */
 .hero-text h1, .hero-text p, .hero-text div, .hero-text span {
     color: #ffffff !important;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
 }
 </style>
 """, unsafe_allow_html=True)
