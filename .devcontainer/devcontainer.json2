@@ -15,7 +15,7 @@ Abhängigkeiten:
   - app.py (Einstiegspunkt der Applikation)
   - requirements.txt / packages.txt (optionale Paketlisten)
  
-Autoren: Stefanie Seiler
+Autoren: Silas Marty
 Datum:   Mai 2026
  
 Quellen:
