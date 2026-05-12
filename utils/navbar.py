@@ -87,15 +87,11 @@ def show_navbar():
         font-size: 1.05rem !important;
         font-weight: 700 !important;
         letter-spacing: 0.01em !important;
-        background: transparent !important;
     }
     div[data-testid="stPageLink"] a:hover { color: #3B82F6 !important; }
     div[data-testid="stPageLink"] p {
         font-size: 1.05rem !important;
         font-weight: 700 !important;
-    }
-    div[data-testid="stPageLink"] {
-        background: transparent !important;
     }
     </style>
     """, unsafe_allow_html=True)
