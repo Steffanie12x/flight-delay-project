@@ -42,6 +42,10 @@ h3 { font-weight: 600 !important; }
 hr { opacity: 0.15 !important; }
 /* Streamlit's automatischen "200MB per file" Text verstecken */
 [data-testid="stFileUploaderDropzoneInstructions"] { display: none !important; }
+/* Hero-Text weiß (überschreibt die globale schwarz-Regel aus navbar.py) */
+.hero-text h1, .hero-text p, .hero-text div, .hero-text span {
+    color: #ffffff !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
