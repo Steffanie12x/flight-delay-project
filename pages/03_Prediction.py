@@ -273,14 +273,16 @@ def show_about():
 
     ---
     **Data Sources & APIs**
-    Flight data: 2.54M flights from 16 US airports (ATL, BOS, DEN, DFW, DTW, EWR, IAH, JFK, LAS, LAX, MCO, MSP, ORD, PHX, SEA, SFO) — Bureau of Transportation Statistics (BTS) 2015, via Kaggle
-    Weather data: Open-Meteo API (historical archive & forecast)
-    Boarding pass scanning: Anthropic Claude API
+
+    - Flight data: 2.54M flights from 16 US airports (ATL, BOS, DEN, DFW, DTW, EWR, IAH, JFK, LAS, LAX, MCO, MSP, ORD, PHX, SEA, SFO) — Bureau of Transportation Statistics (BTS) 2015, via Kaggle
+    - Weather data: Open-Meteo API (historical archive & forecast)
+    - Boarding pass scanning: Anthropic Claude API
 
     ---
     **Model Accuracy**
-    Binary Classification (XGBoost): 67.0% accuracy
-    Multiclass Classification (XGBoost): 80.4% accuracy
+
+    - Binary Classification (XGBoost): 67.0% accuracy
+    - Multiclass Classification (XGBoost): 80.4% accuracy
     """)
 
 # ── PREDICT BUTTON ────────────────────────────────────────────────────────────
