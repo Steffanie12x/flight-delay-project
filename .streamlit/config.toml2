@@ -1,1 +1,51 @@
-
+"""
+config.toml
+ 
+Streamlit-Konfigurationsdatei für das flight-delay-project.
+Steuert das Aussehen und Verhalten der Streamlit-Webanwendung
+(Sidebar-Navigation, Farben, Schrift, Hintergrund).
+ 
+Abhängigkeiten:
+- Streamlit (liest diese Datei automatisch aus dem Ordner .streamlit/)
+ 
+Autoren: Stefanie Seiler
+Datum:   Mai 2026
+ 
+Quellen:
+- Claude (Sonnet 4): Konfiguration des [ui]- und [theme]-Abschnitts,
+  Auswahl der Hex-Farbwerte, TOML-Syntax
+  (TOML-Konfiguration ist kein Bestandteil des CS-Unterrichts)
+"""
+ 
+// ─── UI-Einstellungen ────────────────────────────────────────────────────────
+[ui]
+// Blendet die automatische Seitennavigation in der Sidebar aus (true = versteckt).
+// Quelle: Claude – hideSidebarNav ist eine Streamlit-spezifische Option,
+// die nicht im CS-Unterricht behandelt wurde.
+hideSidebarNav = true
+ 
+// ─── Theme-Einstellungen ─────────────────────────────────────────────────────
+[theme]
+// Setzt das Basis-Farbschema auf "light" (heller Hintergrund, dunkler Text).
+// Quelle: Claude – Streamlit-Theming wurde im CS-Unterricht nicht behandelt.
+base                  = "light"
+ 
+// Primärfarbe (Akzentfarbe) für Buttons, Links und interaktive Elemente: Blau.
+// Hex-Wert #3B82F6 entspricht "Tailwind Blue 500".
+// Quelle: Claude – Hex-Farbwahl und Streamlit-Farbsystem nicht im Unterricht.
+primaryColor          = "#3B82F6"
+ 
+// Haupthintergrundfarbe der App: Weiss (#ffffff).
+backgroundColor       = "#ffffff"
+ 
+// Hintergrundfarbe für sekundäre Bereiche (z.B. Sidebar, Eingabefelder): helles Blau.
+// Hex-Wert #EFF6FF entspricht "Tailwind Blue 50".
+// Quelle: Claude – Konzept secondaryBackgroundColor nicht im Unterricht behandelt.
+secondaryBackgroundColor = "#EFF6FF"
+ 
+// Textfarbe für den gesamten Inhalt der App: fast Schwarz (#111111).
+textColor             = "#111111"
+ 
+// Schriftart der App: serifenlose Schrift (z.B. Arial, Helvetica).
+// Quelle: Claude – Streamlit-Schriftarten-Option nicht im Unterricht behandelt.
+font                  = "sans serif"
