@@ -1,1 +1,22 @@
-
+"""
+.gitignore
+ 
+Legt fest welche Dateien und Ordner Git NICHT versionieren
+soll. Diese Dateien werden nie ins Repository hochgeladen.
+ 
+Autoren: Stefanie Seiler, benmrb
+Datum:   Mai 2026
+ 
+Quellen:
+- Claude (Sonnet 4): Aufbau und Inhalt der .gitignore-Datei
+  vollständig via Claude — .gitignore wurde im CS-Unterricht
+  nicht behandelt
+"""
+ 
+.DS_Store        # macOS-Systemdatei (Ordner-Metadaten) — nicht ins Repo
+ 
+__pycache__/     # Python-Bytecode-Cache-Ordner — automatisch generiert, nicht versionieren
+ 
+*.pyc            # Kompilierte Python-Bytecode-Dateien (alle .pyc-Dateien)
+ 
+*.pyo            # Optimierte Python-Bytecode-Dateien (alle .pyo-Dateien)
