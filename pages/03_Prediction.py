@@ -25,9 +25,9 @@ show_navbar()
 
 st.markdown("""
 <style>
-h1 { font-weight: 700 !important; letter-spacing: -0.02em !important; }
-h2 { font-weight: 600 !important; letter-spacing: -0.01em !important; }
-h3 { font-weight: 600 !important; }
+h1 { font-weight: 700 !important; letter-spacing: -0.02em !important; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important; }
+h2 { font-weight: 600 !important; letter-spacing: -0.01em !important; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important; }
+h3 { font-weight: 600 !important; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important; }
 .stSelectbox label, .stDateInput label, .stSlider label {
     font-size: 0.8rem !important;
     font-weight: 500 !important;
